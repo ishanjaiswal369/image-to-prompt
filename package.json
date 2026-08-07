@@ -1,0 +1,22 @@
+{
+  "name": "image-to-prompt",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "backend",
+    "extension"
+  ],
+  "scripts": {
+    "dev:backend": "npm run dev -w backend",
+    "dev:extension": "npm run dev -w extension",
+    "test:backend": "npm run test -w backend",
+    "build:extension": "npm run build -w extension"
+  },
+  "allowScripts": {
+    "@prisma/client@5.22.0": true,
+    "@prisma/engines@5.22.0": true,
+    "esbuild@0.28.1": true,
+    "esbuild@0.21.5": true,
+    "prisma@5.22.0": true
+  }
+}

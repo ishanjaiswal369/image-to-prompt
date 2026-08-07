@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "Image to Prompt",
+  "version": "0.1.0",
+  "description": "Right-click any image, or select a screen region, to get a structured text-to-image prompt.",
+  "permissions": ["contextMenus", "storage", "activeTab", "sidePanel", "identity", "scripting"],
+  "background": {
+    "service_worker": "src/background/index.ts",
+    "type": "module"
+  },
+  "side_panel": {
+    "default_path": "src/sidepanel/index.html"
+  },
+  "action": {
+    "default_title": "Image to Prompt"
+  },
+  "oauth2": {
+    "client_id": "REPLACE_WITH_GOOGLE_OAUTH_CLIENT_ID.apps.googleusercontent.com",
+    "scopes": ["openid", "email"]
+  },
+  "minimum_chrome_version": "116"
+}

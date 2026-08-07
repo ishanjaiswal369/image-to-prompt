@@ -1,0 +1,63 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  googleSub String   @unique
+  email     String   @unique
+  createdAt DateTime @default(now())
+
+  ledger   CreditLedgerEntry[]
+  requests AnalysisRequest[]
+}
+
+model CreditLedgerEntry {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  delta        Int
+  reason       String // "signup_bonus" | "analysis_debit" | "analysis_refund" | "manual_grant"
+  balanceAfter Int
+  requestId    String?
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+  @@index([requestId])
+}
+
+model AnalysisRequest {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id])
+  idempotencyKey String   @unique
+  sourceType     String // "image_url" | "screenshot"
+  sourceRef      String?
+  provider       String
+  model          String
+  languages      String[]
+  status         String // "pending" | "succeeded" | "failed" | "refunded"
+  costUsd        Decimal? @db.Decimal(10, 4)
+  latencyMs      Int?
+  createdAt      DateTime @default(now())
+
+  results AnalysisResult[]
+
+  @@index([userId, createdAt])
+}
+
+model AnalysisResult {
+  id             String          @id @default(uuid())
+  requestId      String
+  request        AnalysisRequest @relation(fields: [requestId], references: [id])
+  language       String
+  promptText     String
+  jsonStructured Json
+
+  @@index([requestId])
+}

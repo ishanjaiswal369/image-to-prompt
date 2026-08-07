@@ -14,7 +14,7 @@ const EnvSchema = z.object({
   JWT_REFRESH_TTL: z.string().default("30d"),
   VISION_PROVIDER: z.string().default("gemini"),
   GEMINI_API_KEY: z.string().min(1),
-  GEMINI_MODEL: z.string().default("gemini-2.5-flash"),
+  GEMINI_MODEL: z.string().default("gemini-flash-latest"),
   SIGNUP_BONUS_CREDITS: z.coerce.number().int().default(20),
   ADMIN_TOKEN: z.string().min(1),
   RATE_LIMIT_PER_USER_PER_MINUTE: z.coerce.number().int().default(10),

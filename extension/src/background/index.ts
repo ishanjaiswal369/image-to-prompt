@@ -1,8 +1,8 @@
-import { regionSelectOverlay } from "../content/overlay.js";
+import { floatingControlBar } from "../content/floatingBar.js";
+import { injectFloatingCard } from "../content/floatingCard.js";
 import { isRegionSelectedMessage, type PendingAnalysis, type RegionRect } from "../shared/types.js";
 
 const CONTEXT_MENU_ID = "analyze-with-image-to-prompt";
-const SIDE_PANEL_PATH = "src/sidepanel/index.html";
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
@@ -19,15 +19,16 @@ async function setPendingAnalysis(pending: PendingAnalysis): Promise<void> {
   await chrome.storage.session.set({ pendingAnalysis: pending });
 }
 
-async function openSidePanelForTab(tabId: number, windowId: number): Promise<void> {
-  await chrome.sidePanel.setOptions({ tabId, path: SIDE_PANEL_PATH, enabled: true });
-  await chrome.sidePanel.open({ tabId, windowId });
+function logInjectionError(err: unknown): void {
+  console.error("floating card injection failed", err);
 }
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
-  if (info.menuItemId !== CONTEXT_MENU_ID || !info.srcUrl || tab?.id === undefined || tab.windowId === undefined) {
+  if (info.menuItemId !== CONTEXT_MENU_ID || !info.srcUrl || tab?.id === undefined) {
     return;
   }
+
+  const tabId = tab.id;
 
   void (async () => {
     await setPendingAnalysis({
@@ -36,16 +37,20 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       imageUrl: info.srcUrl,
       createdAt: Date.now(),
     });
-    await openSidePanelForTab(tab.id as number, tab.windowId as number);
+    // The floating card's React app reads pendingAnalysis from chrome.storage.session
+    // on mount and via storage.onChanged, so injection order relative to the write
+    // above doesn't matter (unlike chrome.sidePanel.open(), scripting.executeScript
+    // isn't restricted to firing synchronously within the gesture handler).
+    await chrome.scripting.executeScript({ target: { tabId }, func: injectFloatingCard }).catch(logInjectionError);
   })();
 });
 
-// Toolbar icon click starts the screen-region-selection flow. Scoped to activeTab
-// (a user-gesture-triggered, single-tab, temporary permission) rather than any
-// standing host_permissions — see docs/ARCHITECTURE.md.
+// Toolbar icon click injects the draggable floating control bar (toggle to start/stop
+// region-select). Scoped to activeTab (a user-gesture-triggered, single-tab, temporary
+// permission) rather than any standing host_permissions — see docs/ARCHITECTURE.md.
 chrome.action.onClicked.addListener((tab) => {
   if (tab.id === undefined) return;
-  void chrome.scripting.executeScript({ target: { tabId: tab.id }, func: regionSelectOverlay });
+  void chrome.scripting.executeScript({ target: { tabId: tab.id }, func: floatingControlBar });
 });
 
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
@@ -106,7 +111,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         createdAt: Date.now(),
       });
 
-      await openSidePanelForTab(tabId, windowId);
+      await chrome.scripting.executeScript({ target: { tabId }, func: injectFloatingCard }).catch(logInjectionError);
+
       sendResponse({ ok: true });
     } catch (err) {
       sendResponse({ ok: false, error: (err as Error).message });

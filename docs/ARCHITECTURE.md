@@ -8,15 +8,49 @@ Payment processing is out of scope for this phase (see the build spec's Non-Goal
 ## Components
 
 ```
-extension (MV3, React side panel) --HTTPS--> backend (Fastify) --HTTPS--> Postgres 16
-                                                        \--HTTPS--> Gemini 2.5 Flash
+extension (MV3, in-page floating card) --HTTPS--> backend (Fastify) --HTTPS--> Postgres 16
+                                                            \--HTTPS--> Gemini (flash-tier model)
 ```
 
 - **extension/**: background service worker (context menu + screenshot capture),
-  a programmatically-injected region-selection overlay, and a React side panel UI.
+  a programmatically-injected region-selection toggle pill, and a draggable
+  in-page floating card (React) for sign-in/analyze/results/history — see
+  "UI surface" below for why this replaced the side panel.
 - **backend/**: Fastify + Prisma + Postgres. Google-OAuth-derived JWT auth, an
   event-sourced credit ledger, a pluggable vision-provider adapter, rate limiting,
   and structured JSON logging.
+
+## UI surface: in-page floating card, not the side panel
+
+The spec originally called for `chrome.sidePanel` over a popup, specifically because
+a popup closes on focus loss mid-request. The build started that way. At the user's
+explicit request, partway through, this was replaced with an in-page floating card
+(draggable, collapsible, closable — `content/floatingCard.ts` + `floatingcard/`)
+that behaves like the reference competitor product they pointed to, while keeping
+the same non-goal the side panel was chosen for: it's DOM state on the page, not a
+special Chrome UI surface, so it does **not** close on focus loss either.
+
+Mechanically: `content/floatingCard.ts` is a small, dependency-free content script
+(injected via `chrome.scripting.executeScript`'s `func` option, same technique as
+the region-select pill) that builds the draggable/collapsible/closable *outer*
+chrome, then embeds an `<iframe>` pointing at `floatingcard/index.html` — a real
+extension page. Because it's an extension-origin page, it has full `chrome.*` API
+access (storage, identity, runtime messaging) exactly like the old side panel did,
+so almost none of the React app itself needed to change — it just moved from
+`extension/src/sidepanel/` to `extension/src/floatingcard/`. Drag tracking is
+handled by the *outer* vanilla-JS chrome, not inside the iframe: mouse events stop
+reaching an iframe once the cursor leaves its bounds mid-drag, which would break
+dragging on a fast pointer move if handled from inside.
+
+This did add a real, new permission-adjacent surface worth being explicit about:
+`manifest.json` now declares `web_accessible_resources` for `floatingcard/index.html`
+with `matches: ["<all_urls>"]`. This is **not** `host_permissions` — it doesn't grant
+the extension script access to any page — but it does mean any web page (if it knows
+this extension's ID, which is discoverable) can request that specific extension page
+be loaded in an iframe. The page itself only renders UI gated on the user's own auth
+tokens and doesn't expose secrets, so the exposure is low, but this is a real
+Chrome Web Store review-relevant declaration and should be flagged as such alongside
+the `host_permissions` discussion in any store listing.
 
 ## host_permissions justification (required for the eventual Chrome Web Store listing)
 
@@ -33,7 +67,9 @@ certainly not `<all_urls>`:
   toolbar icon). No standing access to any site is ever held.
 
 This satisfies "any image, any site" without the broader review scrutiny (and user
-trust cost) that `<all_urls>` carries under current Chrome Web Store policy.
+trust cost) that `<all_urls>` carries under current Chrome Web Store policy. (See
+"UI surface" above, though, for the `web_accessible_resources` tradeoff that the
+floating card did introduce.)
 
 Two permissions were added beyond the spec's original list, because the flows it
 describes don't work without them:
@@ -53,15 +89,21 @@ the backend to make an extra round-trip to Google's userinfo endpoint per reques
 To get an actual ID token from the same `chrome.identity` namespace, the extension
 uses `chrome.identity.launchWebAuthFlow` with `response_type=id_token` against
 Google's OAuth endpoint, using the same manifest `oauth2.client_id` and the same
-`identity` permission. See `extension/src/sidepanel/api/googleAuth.ts`.
+`identity` permission. See `extension/src/floatingcard/api/googleAuth.ts`.
 
 ## Vision provider: swappable by config
 
 `backend/src/services/vision/provider.ts` defines the `VisionProvider` interface.
-`backend/src/services/vision/gemini.ts` implements it against Gemini 2.5 Flash via a
-direct REST call (not the SDK, to avoid an extra dependency) with
+`backend/src/services/vision/gemini.ts` implements it against Gemini via a direct
+REST call (not the SDK, to avoid an extra dependency) with
 `responseMimeType: "application/json"` and an explicit `responseSchema`, so the
-model's output parses directly into `resultsByLanguage`.
+model's output parses directly into `resultsByLanguage`. The specific model is set
+by `GEMINI_MODEL` (default `gemini-flash-latest`, Google's floating alias for their
+current recommended flash-tier model) — Google periodically retires specific
+dated/versioned model names for new API keys (e.g. `gemini-2.5-flash` returned 404
+"no longer available to new users" during testing even though it's still visible
+in the models list for older projects), so pinning to a specific version here would
+rot; the alias avoids that.
 `backend/src/services/vision/index.ts` is a one-branch factory keyed on the
 `VISION_PROVIDER` env var — adding GPT-4o/5.4 or Claude vision later means adding a
 new file implementing `VisionProvider` and one more `case` in that switch, not a

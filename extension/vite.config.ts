@@ -5,11 +5,23 @@ import manifest from "./manifest.json" with { type: "json" };
 
 export default defineConfig({
   plugins: [react(), crx({ manifest })],
-  // No separate build entry for the region-selection overlay: it's injected via
-  // chrome.scripting.executeScript's `func` option (a self-contained function
-  // imported into the background bundle), not as a standalone content-script file.
-  // That sidesteps content scripts needing classic (non-ESM) output while the rest
-  // of the extension builds as ES modules.
+  // No separate build entry for the region-select pill or the floating card's outer
+  // draggable chrome: both are injected via chrome.scripting.executeScript's `func`
+  // option (self-contained functions bundled into the background), not standalone
+  // content-script files — sidesteps content scripts needing classic (non-ESM)
+  // output while the rest of the extension builds as ES modules.
+  //
+  // The floating card's *inner* app (floatingcard/index.html) is a real extension
+  // page though, loaded via iframe — declaring it in manifest.json's
+  // web_accessible_resources is what crxjs uses to discover it as a build entry,
+  // but it's listed explicitly here too as a safety net.
+  build: {
+    rollupOptions: {
+      input: {
+        floatingcard: "src/floatingcard/index.html",
+      },
+    },
+  },
   server: {
     port: 5173,
     strictPort: true,

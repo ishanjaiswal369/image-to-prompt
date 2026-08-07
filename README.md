@@ -19,7 +19,7 @@ concurrency).
 
 ```
 /backend     Fastify + Prisma + Postgres API
-/extension   Chrome MV3 extension (React side panel)
+/extension   Chrome MV3 extension (in-page floating card, React)
 /docs        Architecture notes
 ```
 

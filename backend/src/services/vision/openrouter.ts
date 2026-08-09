@@ -1,7 +1,7 @@
 import { config } from "../../config.js";
 import { UpstreamProviderError } from "../../lib/errors.js";
 import type { VisionAnalysisResult, VisionProvider } from "./provider.js";
-import { FIELD_DESCRIPTIONS, FIELD_ORDER, buildInstructionText, type PromptFields } from "./promptSpec.js";
+import { FIELD_DESCRIPTIONS, FIELD_ORDER, buildInstructionText, ensurePromptText, type PromptFields } from "./promptSpec.js";
 
 const REQUEST_TIMEOUT_MS = 45_000; // free-tier endpoints can be noticeably slower than paid ones
 
@@ -68,7 +68,18 @@ export class OpenRouterVisionProvider implements VisionProvider {
         type: "json_schema",
         json_schema: { name: "image_prompt_analysis", strict: true, schema: buildJsonSchema(languages) },
       },
-      max_tokens: 4096,
+      // Reasoning models spend a meaningful chunk of the completion budget on their
+      // internal reasoning trace before writing the answer (observed 750-1200
+      // reasoning tokens alone in testing) — capping reasoning leaves a reliable
+      // budget for the six-field answer itself, which was the actual cause of
+      // promptText sometimes coming back empty (not FIELD_ORDER, which was tried
+      // and made it worse — see promptSpec.ts).
+      reasoning: { max_tokens: 600 },
+      max_tokens: 8192,
+      // Free-tier reasoning models showed real run-to-run variance in testing (the
+      // same image/prompt sometimes producing rich detail, sometimes bare labels)
+      // — a lower temperature measurably reduces that without needing a paid model.
+      temperature: 0.35,
     };
 
     const controller = new AbortController();
@@ -122,8 +133,8 @@ export class OpenRouterVisionProvider implements VisionProvider {
       if (!entry) {
         throw new UpstreamProviderError(`openrouter response missing language: ${lang}`);
       }
-      const { promptText, ...jsonStructured } = entry;
-      resultsByLanguage[lang] = { promptText, jsonStructured };
+      const { promptText: _promptText, ...jsonStructured } = entry;
+      resultsByLanguage[lang] = { promptText: ensurePromptText(entry), jsonStructured };
     }
 
     return {

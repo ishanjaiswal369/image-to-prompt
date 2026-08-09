@@ -138,6 +138,30 @@ without checking OpenRouter's and NVIDIA's model catalogs directly:
 - **No per-request cost accounting for this provider.** `costUsd` is hardcoded to
   `0`, correct for the free model this defaults to; a paid OpenRouter model would
   need real pricing lookups added, which isn't implemented.
+- **Reasoning-model output is genuinely inconsistent run-to-run, and needed three
+  separate mitigations to be reliable.** Sending the identical request (same
+  image, same prompt) to this model repeatedly produced real variance: sometimes
+  rich multi-sentence fields, sometimes bare one-line labels, and once content
+  landed in the wrong field entirely (`style` contained subject-appearance
+  content). Root cause: this is a reasoning model — it generates a substantial
+  internal reasoning trace (750-1200+ tokens, visible in the response's
+  `reasoning` field) before writing the actual JSON answer, and that reasoning
+  competes with the answer for the token budget, plus its depth/quality varies
+  per call. Fixes, all in `openrouter.ts`/`promptSpec.ts`:
+  1. `reasoning: { max_tokens: 600 }` caps the reasoning trace so the answer
+     reliably has budget left.
+  2. `temperature: 0.35` (down from provider default) reduces run-to-run variance.
+  3. `FIELD_ORDER` puts `promptText` **last**, deliberately — it was tried first
+     (on the theory that the most important field should be protected from
+     truncation) and made things worse: the model either left it blank or just
+     duplicated `subject` instead of synthesizing, because its own instructions
+     require the other five fields to already exist in context. Last, matching
+     its actual content dependency, is what worked.
+  4. `promptSpec.ts`'s `ensurePromptText()` is a last-resort backstop: if
+     `promptText` still comes back empty despite all of the above (observed
+     ~10-20% of the time in testing even with the fixes), it's synthesized by
+     joining the other five fields rather than shown blank to the user. Applied
+     in both providers, though Gemini hasn't shown this failure mode.
 
 ## Credit ledger: correctness details not obvious from the schema
 

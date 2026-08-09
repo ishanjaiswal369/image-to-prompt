@@ -1,7 +1,7 @@
 import { config } from "../../config.js";
 import { UpstreamProviderError } from "../../lib/errors.js";
 import type { VisionAnalysisResult, VisionProvider } from "./provider.js";
-import { FIELD_DESCRIPTIONS, FIELD_ORDER, buildInstructionText, type PromptFields } from "./promptSpec.js";
+import { FIELD_DESCRIPTIONS, FIELD_ORDER, buildInstructionText, ensurePromptText, type PromptFields } from "./promptSpec.js";
 
 // Approximate Gemini flash-tier per-token pricing; not exact billing, just enough for
 // the costUsd field to be a useful order-of-magnitude signal in logs/history.
@@ -102,8 +102,8 @@ export class GeminiVisionProvider implements VisionProvider {
       if (!entry) {
         throw new UpstreamProviderError(`gemini response missing language: ${lang}`);
       }
-      const { promptText, ...jsonStructured } = entry;
-      resultsByLanguage[lang] = { promptText, jsonStructured };
+      const { promptText: _promptText, ...jsonStructured } = entry;
+      resultsByLanguage[lang] = { promptText: ensurePromptText(entry), jsonStructured };
     }
 
     const tokensIn = data.usageMetadata?.promptTokenCount ?? 0;

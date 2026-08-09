@@ -13,14 +13,11 @@ const base = (size: number) => ({
   strokeLinejoin: "round" as const,
 });
 
-/** Four corner brackets — the extension's mark: a frame around what it's about to analyze. */
+/** Solid rounded square — the extension's mark. Deliberately plain: one shape, one color. */
 export function BrandMark({ size = 20, ...props }: IconProps) {
   return (
-    <svg {...base(size)} {...props}>
-      <path d="M3 8V4a1 1 0 0 1 1-1h4" />
-      <path d="M16 3h4a1 1 0 0 1 1 1v4" />
-      <path d="M21 16v4a1 1 0 0 1-1 1h-4" />
-      <path d="M8 21H4a1 1 0 0 1-1-1v-4" />
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" {...props}>
+      <rect x="2" y="2" width="20" height="20" rx="6" fill="currentColor" />
     </svg>
   );
 }

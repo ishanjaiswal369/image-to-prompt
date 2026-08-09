@@ -2,7 +2,12 @@ import { useState } from "react";
 import { useHistory } from "../api/hooks.js";
 import { IconAlert, IconClock } from "../components/Icons.js";
 
-const LANGUAGE_LABELS: Record<string, string> = { en: "EN", zh: "中文", ja: "日本語" };
+const STATUS_LABELS: Record<string, string> = {
+  succeeded: "Succeeded",
+  failed: "Failed",
+  refunded: "Failed",
+  pending: "Pending",
+};
 
 export function History() {
   const [cursor, setCursor] = useState<string | undefined>(undefined);
@@ -42,27 +47,27 @@ export function History() {
   return (
     <div className="history-view">
       <div className="history-scroll">
-        {data.items.map((item) => (
-          <div className="history-card" key={item.id}>
-            <div className="history-card-head">
-              <span className="history-date">{new Date(item.createdAt).toLocaleString()}</span>
-              <span className={`status-pill status-pill--${item.status}`}>{item.status}</span>
+        {data.items.map((item) => {
+          const promptText = item.results.en?.promptText;
+          return (
+            <div className="history-row" key={item.id}>
+              <div className="history-row-head">
+                <span className={`status-dot status-dot--${item.status}`} />
+                <span className={`status-label status-label--${item.status}`}>{STATUS_LABELS[item.status] ?? item.status}</span>
+                <span>· {new Date(item.createdAt).toLocaleString()}</span>
+              </div>
+              {promptText && <p className="history-prompt-line">{promptText}</p>}
             </div>
-            {Object.entries(item.results).map(([lang, r]) => (
-              <p className="history-prompt-line" key={lang}>
-                <strong>{LANGUAGE_LABELS[lang] ?? lang.toUpperCase()}</strong>
-                {r.promptText}
-              </p>
-            ))}
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="pagination">
         <button
-          className="ghost-btn"
-          disabled={cursorStack.length === 0}
+          className="text-link"
+          aria-disabled={cursorStack.length === 0}
           onClick={() => {
+            if (cursorStack.length === 0) return;
             const prev = [...cursorStack];
             const last = prev.pop();
             setCursorStack(prev);
@@ -72,8 +77,8 @@ export function History() {
           Previous
         </button>
         <button
-          className="ghost-btn"
-          disabled={!data.nextCursor}
+          className="text-link"
+          aria-disabled={!data.nextCursor}
           onClick={() => {
             if (!data.nextCursor) return;
             setCursorStack((s) => [...s, cursor ?? ""]);

@@ -104,10 +104,40 @@ dated/versioned model names for new API keys (e.g. `gemini-2.5-flash` returned 4
 "no longer available to new users" during testing even though it's still visible
 in the models list for older projects), so pinning to a specific version here would
 rot; the alias avoids that.
-`backend/src/services/vision/index.ts` is a one-branch factory keyed on the
-`VISION_PROVIDER` env var — adding GPT-4o/5.4 or Claude vision later means adding a
-new file implementing `VisionProvider` and one more `case` in that switch, not a
-rewrite of `/analyze`.
+`backend/src/services/vision/index.ts` is a two-branch factory keyed on the
+`VISION_PROVIDER` env var (`gemini` | `openrouter`) — adding GPT-4o/5.4 or Claude
+vision later means adding a new file implementing `VisionProvider` and one more
+`case` in that switch, not a rewrite of `/analyze`. Both providers' prompt content
+(instructions, per-field descriptions) is shared from `promptSpec.ts` so output
+quality can't silently drift between them.
+
+### OpenRouter provider, and why not Nemotron's other models
+
+`backend/src/services/vision/openrouter.ts` implements `VisionProvider` against
+OpenRouter's OpenAI-compatible `chat/completions` endpoint, at the user's request
+to support free-tier models. Two things worth recording since they weren't obvious
+without checking OpenRouter's and NVIDIA's model catalogs directly:
+
+- **NVIDIA's Nemotron line is not a drop-in Gemini/GPT-4o-vision replacement.**
+  Most Nemotron models are text-only. The one image-capable Nemotron model
+  findable via a plain "nemotron" search on OpenRouter is
+  `nemotron-3.5-content-safety` — a moderation/guardrail classifier (safe/unsafe
+  labels), not a captioning model. The model actually used here,
+  **`nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free`**, only surfaced by
+  filtering OpenRouter's catalog for free models with image input + text output —
+  it didn't come up in a name search. Confirmed free ($0/M input and output
+  tokens) and general-purpose (text/image/video/audio in, text out) as of
+  verification during this build.
+- **Structured outputs aren't guaranteed on free-tier endpoints.** OpenRouter's
+  `response_format: {type: "json_schema", strict: true}` is only honored by
+  models/endpoints that declare support for it, and that's less consistent among
+  free models. `openrouter.ts` still requests it (free where supported), but
+  parsing tolerates a model that ignores it and wraps its JSON in prose or a
+  markdown code fence anyway (`extractJsonText`) — unlike the Gemini provider,
+  which can rely on `responseSchema` being strictly enforced.
+- **No per-request cost accounting for this provider.** `costUsd` is hardcoded to
+  `0`, correct for the free model this defaults to; a paid OpenRouter model would
+  need real pricing lookups added, which isn't implemented.
 
 ## Credit ledger: correctness details not obvious from the schema
 

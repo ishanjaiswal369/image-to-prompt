@@ -13,8 +13,16 @@ const EnvSchema = z.object({
   JWT_REFRESH_SECRET: z.string().min(1),
   JWT_REFRESH_TTL: z.string().default("30d"),
   VISION_PROVIDER: z.string().default("gemini"),
-  GEMINI_API_KEY: z.string().min(1),
+  // Provider API keys are optional here (not every deployment sets both) — the
+  // vision provider factory validates that the *selected* provider's key is
+  // present when it's actually instantiated, with a clear error if not.
+  GEMINI_API_KEY: z.string().optional().default(""),
   GEMINI_MODEL: z.string().default("gemini-flash-latest"),
+  OPENROUTER_API_KEY: z.string().optional().default(""),
+  // Free, general-purpose vision-language model on OpenRouter as of testing —
+  // see docs/ARCHITECTURE.md for how this was verified and why Nemotron's other
+  // models (text-only, or the OCR/content-safety specialists) don't fit this use case.
+  OPENROUTER_MODEL: z.string().default("nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free"),
   SIGNUP_BONUS_CREDITS: z.coerce.number().int().default(20),
   ADMIN_TOKEN: z.string().min(1),
   RATE_LIMIT_PER_USER_PER_MINUTE: z.coerce.number().int().default(10),

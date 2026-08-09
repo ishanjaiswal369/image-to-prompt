@@ -15,7 +15,7 @@ export function floatingControlBar(): void {
     existingBar.remove();
     return;
   }
-
+ 
   const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
   const theme = isDark
     ? {

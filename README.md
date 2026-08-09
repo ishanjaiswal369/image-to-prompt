@@ -1,9 +1,8 @@
 # Image to Prompt
 
 Right-click any image (or select a screen region) in Chrome → get a structured
-text-to-image prompt (subject, composition, style, lighting, mood) in English,
-Chinese, and Japanese, plus raw JSON. Accounts and credits are gated via Google
-sign-in and an event-sourced credit ledger. Payment processing is out of scope for
+text-to-image prompt (subject, composition, style, lighting, mood), plus raw JSON.
+Accounts and credits are gated via Google sign-in and an event-sourced credit ledger. Payment processing is out of scope for
 this phase — see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full design,
 including why certain spec details were adapted (permissions, auth flow, ledger
 concurrency).
@@ -81,7 +80,7 @@ curl -X POST http://localhost:8080/analyze \
     "idempotencyKey":"'"$(node -e 'console.log(crypto.randomUUID())')"'",
     "sourceType":"image_url",
     "imageUrl":"https://example.com/image.jpg",
-    "languages":["en","zh","ja"]
+    "languages":["en"]
   }'
 
 # 3. Check balance / history

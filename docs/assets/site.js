@@ -27,6 +27,9 @@
 
   if (!animate) {
     html.classList.remove("is-loading");
+    const hash = window.__initialHash;
+    const target = hash && document.querySelector(hash);
+    if (target) { history.replaceState(null, "", hash); target.scrollIntoView(); }
     return;
   }
 
@@ -289,6 +292,13 @@
         gsap.set(pre, { clearProps: "all" });
         if (lenis) lenis.start();
         ScrollTrigger.refresh();
+        // honour a #section in the URL once pins are measured from the top
+        const hash = window.__initialHash;
+        const target = hash && document.querySelector(hash);
+        if (target) {
+          history.replaceState(null, "", hash);
+          lenis ? lenis.scrollTo(target, { duration: 1.4 }) : target.scrollIntoView();
+        }
       });
   }
 

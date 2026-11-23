@@ -19,8 +19,18 @@
       var d = document.documentElement;
       if (window.matchMedia && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
         d.classList.add("motion", "is-loading");
+        /* Pinned sections measure from the top, so never let the browser restore a mid-page position. */
+        if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+        if (location.hash.length > 1) {
+          window.__initialHash = location.hash;
+          history.replaceState(null, "", location.pathname + location.search);
+        }
+        window.scrollTo(0, 0);
         setTimeout(function () {
-          if (!window.__siteReady) d.classList.remove("motion", "is-loading");
+          if (window.__siteReady) return;
+          d.classList.remove("motion", "is-loading");
+          var t = window.__initialHash && document.querySelector(window.__initialHash);
+          if (t) { history.replaceState(null, "", window.__initialHash); t.scrollIntoView(); }
         }, 4500);
       }
     })();

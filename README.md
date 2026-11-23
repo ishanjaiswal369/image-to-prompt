@@ -7,7 +7,7 @@ this phase — see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full d
 including why certain spec details were adapted (permissions, auth flow, ledger
 concurrency).
 
-**Live:** [landing page](https://ishanjaiswal369.github.io/image-to-prompt/) ·
+**Live:** [landing page](https://image-to-prompt.copperlabs.co.in) ·
 [download the extension](https://github.com/ishanjaiswal369/image-to-prompt/releases/latest/download/image-to-prompt.zip) ·
 API on Render ([`/healthz`](https://image-to-prompt-api.onrender.com/healthz))
 

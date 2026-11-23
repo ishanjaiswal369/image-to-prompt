@@ -40,8 +40,14 @@ Zip the **contents** of `extension/dist` (manifest.json at the zip root).
   `extension/.keys/`, gitignored). CORS (`render.yaml`) and the Google OAuth redirect URI
   (`https://lpcbjcihdlfbpdkcjkcnipaednhopabp.chromiumapp.org/`) are set for that ID.
 - Attach the zip to a GitHub Release as `image-to-prompt.zip`; the landing page
-  (`docs/index.html`, served by GitHub Pages from `/docs`) links to
+  (`docs/index.html`) links to
   `releases/latest/download/image-to-prompt.zip`, so new releases need no page edit.
+
+## 4a. Landing page (Vercel)
+
+Static site in `docs/`, no build. Vercel project: import this repo, **Root Directory** `docs`,
+Framework **Other**, no build command. Domain `image-to-prompt.copperlabs.co.in` — DNS:
+`CNAME image-to-prompt → cname.vercel-dns.com`. Every push to `main` redeploys.
 
 ## 4b. Chrome Web Store ($5, optional)
 

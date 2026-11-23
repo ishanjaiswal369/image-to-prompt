@@ -43,5 +43,5 @@ jobs:
             **Install:** download `image-to-prompt.zip` below, unzip it to a folder you'll keep,
             open `chrome://extensions`, turn on Developer mode, click **Load unpacked** and pick the folder.
 
-            Landing page: https://ishanjaiswal369.github.io/image-to-prompt/
+            Landing page: https://image-to-prompt.copperlabs.co.in/
           generate_release_notes: true

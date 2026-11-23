@@ -354,7 +354,7 @@ html.menu-open .nav__toggle-lines::after { top: 3.25px; transform: rotate(-45deg
 .hero__meta { padding-top: calc(var(--nav-h) + 16px); row-gap: 6px; }
 .hero__meta .meta:nth-child(n + 3) { display: none; }
 .hero__body { margin-top: clamp(48px, 9vh, 104px); row-gap: clamp(28px, 4.5vh, 48px); align-items: start; }
-.hero__title { font-size: clamp(60px, 16.4vw, 172px); }
+.hero__title { font-size: clamp(52px, 15vw, 172px); }
 .hero__intro { display: grid; gap: 32px; max-width: 34rem; }
 .hero__cta { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 28px; }
 .hero__figure { margin: 0; }

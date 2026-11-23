@@ -403,7 +403,7 @@
       ScrollTrigger.create({
         trigger: stage,
         start: "top top",
-        end: () => "+=" + Math.round(window.innerHeight * 3.4),
+        end: () => "+=" + Math.round(window.innerHeight * 2.4),
         pin: true,
         scrub: 0.7,
         anticipatePin: 1,

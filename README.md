@@ -7,6 +7,9 @@ this phase — see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full d
 including why certain spec details were adapted (permissions, auth flow, ledger
 concurrency).
 
+**Deploying:** see [`docs/DEPLOY.md`](docs/DEPLOY.md) (Neon + Render + Chrome Web Store) ·
+**Privacy:** [`PRIVACY.md`](PRIVACY.md)
+
 ## Prerequisites
 
 - Node.js 20+ (developed against Node 24)

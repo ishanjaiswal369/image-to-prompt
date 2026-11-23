@@ -1,11 +1,15 @@
 FROM node:20-slim AS base
 WORKDIR /app
+# Prisma's engines need OpenSSL, which the slim image doesn't ship.
+RUN apt-get update -y && apt-get install -y --no-install-recommends openssl && rm -rf /var/lib/apt/lists/*
 RUN corepack enable
 
 FROM base AS deps
 COPY package.json ./
 COPY backend/package.json ./backend/package.json
 RUN npm install --workspace backend --include-workspace-root
+# Workspaces hoist deps to /app/node_modules, so backend/node_modules may not exist — the COPYs below need it.
+RUN mkdir -p backend/node_modules
 
 FROM base AS build
 COPY --from=deps /app/node_modules ./node_modules
@@ -16,7 +20,7 @@ WORKDIR /app/backend
 RUN npx prisma generate --schema src/db/prisma/schema.prisma
 RUN npm run build
 
-FROM node:20-slim AS runtime
+FROM base AS runtime
 WORKDIR /app/backend
 ENV NODE_ENV=production
 COPY --from=build /app/node_modules /app/node_modules
@@ -25,4 +29,5 @@ COPY --from=build /app/backend/dist ./dist
 COPY --from=build /app/backend/src/db/prisma ./src/db/prisma
 COPY --from=build /app/backend/package.json ./package.json
 EXPOSE 8080
-CMD ["node", "dist/server.js"]
+# Applies any pending migrations on every boot (no-op when up to date), then starts the server.
+CMD ["npm", "run", "start:prod"]

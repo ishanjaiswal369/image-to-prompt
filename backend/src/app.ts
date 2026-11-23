@@ -18,8 +18,10 @@ export async function buildApp(): Promise<FastifyInstance> {
     },
   });
 
-  // Restricted to the extension's own origin, never "*" — chrome-extension://<id>.
-  await app.register(cors, { origin: [config.EXTENSION_ORIGIN] });
+  // Restricted to the extension's own origin(s), never "*" — chrome-extension://<id>.
+  // Comma-separated so the local unpacked build and the Web Store build can both be allowed.
+  const allowedOrigins = config.EXTENSION_ORIGIN.split(",").map((o) => o.trim()).filter(Boolean);
+  await app.register(cors, { origin: allowedOrigins });
 
   // Global cap, on top of the per-user token bucket applied to /analyze specifically.
   await app.register(rateLimit, {

@@ -33,7 +33,19 @@ npm run build:extension
 
 Zip the **contents** of `extension/dist` (manifest.json at the zip root).
 
-## 4. Chrome Web Store
+## 4a. Distribute without the Web Store (free) — current setup
+
+- `extension/manifest.json` has a `key`, which pins the extension ID to
+  `lpcbjcihdlfbpdkcjkcnipaednhopabp` for every unpacked install (private key kept locally in
+  `extension/.keys/`, gitignored). CORS (`render.yaml`) and the Google OAuth redirect URI
+  (`https://lpcbjcihdlfbpdkcjkcnipaednhopabp.chromiumapp.org/`) are set for that ID.
+- Attach the zip to a GitHub Release as `image-to-prompt.zip`; the landing page
+  (`docs/index.html`, served by GitHub Pages from `/docs`) links to
+  `releases/latest/download/image-to-prompt.zip`, so new releases need no page edit.
+
+## 4b. Chrome Web Store ($5, optional)
+
+Remove the `key` field from the manifest before uploading (the store assigns its own ID).
 
 1. <https://chrome.google.com/webstore/devconsole> → register ($5 one-time).
 2. **New item** → upload the zip. Note the **item ID** shown (32 letters).

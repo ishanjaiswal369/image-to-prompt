@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Image to Prompt</title>
+  <meta name="description" content="Chrome extension: right-click any image or select a screen region to get a structured, ready-to-use text-to-image prompt.">
+  <meta property="og:title" content="Image to Prompt">
+  <meta property="og:description" content="Right-click any image. Get a ready-to-use text-to-image prompt.">
+  <meta property="og:image" content="https://ishanjaiswal369.github.io/image-to-prompt/assets/og.png">
+  <meta property="og:url" content="https://ishanjaiswal369.github.io/image-to-prompt/">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" type="image/png" href="assets/favicon-32.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #fafaf9;
+      --bg-elevated: #ffffff;
+      --bg-sunken: #f2f2f0;
+      --border: #e7e5e4;
+      --border-strong: #d6d3d1;
+      --text: #18181b;
+      --text-secondary: #52525b;
+      --text-tertiary: #8f9096;
+      --accent: #3b82f6;
+      --accent-strong: #2563eb;
+      --accent-soft: rgba(59, 130, 246, 0.10);
+      --accent-text: #ffffff;
+      --shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06);
+      --radius: 14px;
+      --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
+    }
+    :root[data-theme="dark"] {
+      --bg: #0e0f12; --bg-elevated: #17181d; --bg-sunken: #121318;
+      --border: #26282f; --border-strong: #35373f;
+      --text: #f0f0f2; --text-secondary: #a1a3ab; --text-tertiary: #6c6e77;
+      --accent-soft: rgba(59, 130, 246, 0.16);
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px rgba(0,0,0,.35);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #0e0f12; --bg-elevated: #17181d; --bg-sunken: #121318;
+        --border: #26282f; --border-strong: #35373f;
+        --text: #f0f0f2; --text-secondary: #a1a3ab; --text-tertiary: #6c6e77;
+        --accent-soft: rgba(59, 130, 246, 0.16);
+        --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px rgba(0,0,0,.35);
+      }
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0; background: var(--bg); color: var(--text);
+      font: 16px/1.6 Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: inherit; }
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+    @media (max-width: 600px) { .wrap { padding: 0 16px; } }
+
+    /* nav */
+    nav { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 85%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); }
+    nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 60px; }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; text-decoration: none; }
+    .mark { width: 22px; height: 22px; border-radius: 6.5px; background: var(--accent); flex: none; }
+    .nav-links { display: flex; align-items: center; gap: 24px; font-size: 14px; }
+    .nav-links a { text-decoration: none; color: var(--text-secondary); }
+    .nav-links a:hover { color: var(--text); }
+    @media (max-width: 640px) { .nav-links .hide-sm { display: none; } }
+
+    /* buttons */
+    .btn { display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 18px; border-radius: 10px; font: 600 15px/1 Inter, system-ui, sans-serif; text-decoration: none; border: 1px solid transparent; transition: background .15s, border-color .15s; }
+    .btn-primary { background: var(--accent); color: var(--accent-text); }
+    .btn-primary:hover { background: var(--accent-strong); }
+    .btn-secondary { border-color: var(--border-strong); color: var(--text); background: var(--bg-elevated); }
+    .btn-secondary:hover { border-color: var(--text-tertiary); }
+    .btn-sm { height: 34px; padding: 0 12px; font-size: 13px; border-radius: 8px; }
+    .btn svg { width: 18px; height: 18px; }
+
+    /* hero */
+    .hero { padding: 88px 0 72px; display: grid; grid-template-columns: 1.05fr 1fr; gap: 56px; align-items: center; }
+    @media (max-width: 860px) { .hero { grid-template-columns: 1fr; padding: 56px 0 48px; gap: 40px; } }
+    .eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: var(--accent); background: var(--accent-soft); padding: 5px 12px; border-radius: 999px; margin-bottom: 20px; }
+    h1 { font-size: clamp(36px, 5.4vw, 56px); line-height: 1.06; letter-spacing: -0.035em; margin: 0 0 20px; font-weight: 700; text-wrap: balance; }
+    .lede { font-size: 18px; color: var(--text-secondary); margin: 0 0 32px; max-width: 34em; }
+    .cta { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+    .cta-meta { font-size: 13px; color: var(--text-tertiary); margin-top: 14px; }
+
+    /* product illustration */
+    .scene { position: relative; aspect-ratio: 5 / 4; border-radius: 20px; border: 1px solid var(--border); background:
+      radial-gradient(120% 80% at 20% 10%, rgba(59,130,246,.22), transparent 60%),
+      radial-gradient(90% 70% at 90% 90%, rgba(234,177,85,.20), transparent 60%),
+      var(--bg-sunken); overflow: hidden; box-shadow: var(--shadow); }
+    .photo { position: absolute; left: 7%; top: 9%; width: 52%; aspect-ratio: 4/5; border-radius: 12px;
+      background: linear-gradient(160deg, #f6c58c 0%, #e98a6a 38%, #6b4c9a 75%, #2b2f5a 100%); box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+    .photo::after { content: ""; position: absolute; left: 22%; bottom: 14%; width: 56%; height: 34%; border-radius: 50% 50% 8px 8px; background: rgba(20,18,40,.55); }
+    .photo::before { content: ""; position: absolute; right: 18%; top: 14%; width: 22%; aspect-ratio: 1; border-radius: 50%; background: rgba(255,240,200,.85); }
+    .menu { position: absolute; z-index: 2; left: 24%; top: 30%; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 9px; box-shadow: var(--shadow); padding: 5px; font-size: 12.5px; min-width: 200px; }
+    .menu div { padding: 6px 10px; border-radius: 6px; color: var(--text-tertiary); white-space: nowrap; }
+    .menu .on { background: var(--accent); color: #fff; display: flex; align-items: center; gap: 8px; }
+    .menu .on i { width: 10px; height: 10px; border-radius: 3px; background: #fff; display: inline-block; }
+    .card { position: absolute; right: 5%; bottom: 6%; width: 44%; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); padding: 14px; }
+    .card-head { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; margin-bottom: 12px; }
+    .card-head .mark { width: 14px; height: 14px; border-radius: 4px; }
+    .field { margin-bottom: 9px; }
+    .field b { display: block; font-size: 9.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px; }
+    .line { height: 6px; border-radius: 3px; background: var(--border); margin-bottom: 4px; }
+    .prompt-box { margin-top: 12px; padding: 9px; border-radius: 9px; background: var(--accent-soft); }
+    .prompt-box .line { background: color-mix(in srgb, var(--accent) 40%, transparent); }
+    @media (max-width: 480px) { .menu { min-width: 0; font-size: 11px; left: 16%; top: 24%; } .card { width: 54%; padding: 10px; } }
+
+    /* sections */
+    section { padding: 72px 0; border-top: 1px solid var(--border); }
+    .section-head { max-width: 640px; margin-bottom: 40px; }
+    .kicker { font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+    h2 { font-size: clamp(26px, 3.4vw, 36px); line-height: 1.15; letter-spacing: -0.025em; margin: 0 0 12px; font-weight: 700; text-wrap: balance; }
+    .section-head p { color: var(--text-secondary); margin: 0; font-size: 17px; }
+
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    @media (max-width: 800px) { .grid-3 { grid-template-columns: 1fr; } }
+    .tile { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; }
+    .tile .num { font: 500 13px var(--mono); color: var(--accent); margin-bottom: 14px; }
+    .tile h3 { margin: 0 0 6px; font-size: 17px; letter-spacing: -0.01em; }
+    .tile p { margin: 0; color: var(--text-secondary); font-size: 15px; }
+
+    .fields { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; align-items: center; }
+    .chip { font: 500 13px var(--mono); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-elevated); color: var(--text-secondary); }
+    .chip.accent { border-color: transparent; background: var(--accent-soft); color: var(--accent); }
+    .arrow { color: var(--text-tertiary); font-size: 14px; padding: 0 2px; }
+    .works-with { margin-top: 18px; font-size: 14px; color: var(--text-tertiary); }
+
+    /* install */
+    .install { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: start; }
+    @media (max-width: 860px) { .install { grid-template-columns: 1fr; gap: 32px; } }
+    ol.steps { list-style: none; margin: 0; padding: 0; counter-reset: s; }
+    ol.steps li { counter-increment: s; position: relative; padding: 0 0 22px 48px; }
+    ol.steps li::before { content: counter(s); position: absolute; left: 0; top: -2px; width: 30px; height: 30px; border-radius: 9px; background: var(--accent-soft); color: var(--accent); font: 600 14px/30px var(--mono); text-align: center; }
+    ol.steps li strong { display: block; font-weight: 600; margin-bottom: 2px; }
+    ol.steps li span { color: var(--text-secondary); font-size: 15px; }
+    code { font: 500 0.88em var(--mono); background: var(--bg-sunken); border: 1px solid var(--border); padding: 1px 6px; border-radius: 6px; color: var(--text); }
+    .note { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; }
+    .note h3 { margin: 0 0 12px; font-size: 16px; }
+    .note ul { margin: 0; padding-left: 18px; color: var(--text-secondary); font-size: 15px; }
+    .note li { margin-bottom: 8px; }
+    .note .btn { margin-top: 16px; }
+
+    /* architecture */
+    .arch { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; align-items: stretch; margin-bottom: 40px; }
+    @media (max-width: 860px) { .arch { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 480px) { .arch { grid-template-columns: 1fr; } }
+    .node { position: relative; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+    .node .tag { font: 500 11px var(--mono); color: var(--text-tertiary); text-transform: uppercase; letter-spacing: .06em; }
+    .node h4 { margin: 6px 0 4px; font-size: 15px; }
+    .node p { margin: 0; font-size: 13.5px; color: var(--text-secondary); line-height: 1.5; }
+    .node.hl { border-color: color-mix(in srgb, var(--accent) 55%, transparent); box-shadow: 0 0 0 3px var(--accent-soft); }
+    @media (min-width: 861px) {
+      .node:not(:last-child)::after { content: "→"; position: absolute; right: -12px; top: 50%; transform: translate(50%, -50%); color: var(--text-tertiary); font-size: 14px; z-index: 1; }
+    }
+    .decisions { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 800px) { .decisions { grid-template-columns: 1fr; } }
+    .decision { padding: 20px 22px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--bg-elevated); }
+    .decision h3 { margin: 0 0 6px; font-size: 16px; }
+    .decision p { margin: 0; color: var(--text-secondary); font-size: 14.5px; }
+    .stack { margin-top: 40px; display: grid; grid-template-columns: 140px 1fr; gap: 12px 24px; font-size: 15px; }
+    @media (max-width: 600px) { .stack { grid-template-columns: 1fr; gap: 4px; } .stack dd { margin-bottom: 12px; } }
+    .stack dt { color: var(--text-tertiary); font-weight: 500; }
+    .stack dd { margin: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+
+    footer { border-top: 1px solid var(--border); padding: 32px 0 48px; font-size: 14px; color: var(--text-tertiary); }
+    footer .wrap { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    footer a { color: var(--text-secondary); text-decoration: none; margin-left: 20px; }
+    footer a:first-child { margin-left: 0; }
+    footer a:hover { color: var(--text); }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="wrap">
+      <a class="brand" href="#"><span class="mark"></span>Image to Prompt</a>
+      <div class="nav-links">
+        <a class="hide-sm" href="#how">How it works</a>
+        <a class="hide-sm" href="#install">Install</a>
+        <a class="hide-sm" href="#tech">Under the hood</a>
+        <a class="btn btn-secondary btn-sm" href="https://github.com/ishanjaiswal369/image-to-prompt">
+          <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          GitHub
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="wrap">
+    <header class="hero">
+      <div>
+        <div class="eyebrow">Chrome extension · Free</div>
+        <h1>Turn any image into a ready&#8209;to&#8209;use prompt.</h1>
+        <p class="lede">Right-click an image, or drag over any part of your screen. Image to Prompt reads it with a vision model and writes a detailed text-to-image prompt you can paste straight into your generator.</p>
+        <div class="cta">
+          <a class="btn btn-primary" href="https://github.com/ishanjaiswal369/image-to-prompt/releases/latest/download/image-to-prompt.zip">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0-4.5-4.5M12 15l4.5-4.5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+            Download for Chrome
+          </a>
+          <a class="btn btn-secondary" href="#install">How to install</a>
+        </div>
+        <div class="cta-meta">v0.1.0 · Chrome 116+ · Sign in with Google · Free credits on sign-up</div>
+      </div>
+
+      <div class="scene" role="img" aria-label="Illustration: right-clicking an image opens 'Analyze with Image to Prompt', and a floating card shows the structured result.">
+        <div class="photo"></div>
+        <div class="menu">
+          <div>Open image in new tab</div>
+          <div>Copy image</div>
+          <div class="on"><i></i>Analyze with Image to Prompt</div>
+        </div>
+        <div class="card">
+          <div class="card-head"><span class="mark"></span>Image to Prompt</div>
+          <div class="field"><b>Subject</b><div class="line" style="width:92%"></div><div class="line" style="width:70%"></div></div>
+          <div class="field"><b>Style</b><div class="line" style="width:80%"></div></div>
+          <div class="field"><b>Lighting</b><div class="line" style="width:66%"></div></div>
+          <div class="prompt-box"><div class="line" style="width:96%"></div><div class="line" style="width:88%"></div><div class="line" style="width:58%;margin:0"></div></div>
+        </div>
+      </div>
+    </header>
+
+    <section id="how">
+      <div class="section-head">
+        <div class="kicker">How it works</div>
+        <h2>Three steps, no tab switching.</h2>
+        <p>Everything happens in a floating card on the page you're already on. It stays open when you click away.</p>
+      </div>
+      <div class="grid-3">
+        <div class="tile"><div class="num">01</div><h3>Pick an image</h3><p>Right-click any image and choose <em>Analyze with Image to Prompt</em>, or click the toolbar icon and drag to select any region of the screen.</p></div>
+        <div class="tile"><div class="num">02</div><h3>A vision model reads it</h3><p>The image is analyzed for subject, framing, rendering style, light and atmosphere, each kept to its own field.</p></div>
+        <div class="tile"><div class="num">03</div><h3>Copy and generate</h3><p>Copy the finished prompt or the raw JSON in one click. Past results are saved in your history.</p></div>
+      </div>
+      <div class="fields">
+        <span class="chip">subject</span><span class="chip">composition</span><span class="chip">style</span><span class="chip">lighting</span><span class="chip">mood</span>
+        <span class="arrow">→</span><span class="chip accent">promptText</span>
+      </div>
+      <div class="works-with">Works with Midjourney, Stable Diffusion, DALL·E, Flux and other image generators.</div>
+    </section>
+
+    <section id="install">
+      <div class="install">
+        <div>
+          <div class="section-head" style="margin-bottom:28px">
+            <div class="kicker">Install</div>
+            <h2>Up and running in a minute.</h2>
+            <p>Installed directly from the download, so it takes four quick steps instead of one click.</p>
+          </div>
+          <ol class="steps">
+            <li><strong>Download the zip</strong><span><a href="https://github.com/ishanjaiswal369/image-to-prompt/releases/latest/download/image-to-prompt.zip">image-to-prompt.zip</a> from the latest release.</span></li>
+            <li><strong>Unzip it to a folder you'll keep</strong><span>Chrome loads the extension from that folder, so don't delete it afterwards.</span></li>
+            <li><strong>Turn on Developer mode</strong><span>Open <code>chrome://extensions</code> and flip the switch in the top-right corner.</span></li>
+            <li><strong>Load unpacked</strong><span>Click <em>Load unpacked</em>, pick the unzipped folder, then pin it from the puzzle-piece menu.</span></li>
+          </ol>
+        </div>
+        <div class="note">
+          <h3>Good to know</h3>
+          <ul>
+            <li>Sign in with Google the first time you analyze an image. New accounts get free credits.</li>
+            <li>The backend runs on a free server that sleeps when idle, so the first analysis can take up to a minute. After that it's quick.</li>
+            <li>Screenshots you select are sent for analysis and never stored. See the <a href="https://github.com/ishanjaiswal369/image-to-prompt/blob/main/PRIVACY.md">privacy policy</a>.</li>
+          </ul>
+          <a class="btn btn-primary btn-sm" href="https://github.com/ishanjaiswal369/image-to-prompt/releases/latest/download/image-to-prompt.zip">Download v0.1.0</a>
+        </div>
+      </div>
+    </section>
+
+    <section id="tech">
+      <div class="section-head">
+        <div class="kicker">Under the hood</div>
+        <h2>A small product, built like a real one.</h2>
+        <p>A Manifest V3 extension talking to a typed Fastify API, with credits that can't be double-spent and AI calls that refund themselves when they fail.</p>
+      </div>
+
+      <div class="arch">
+        <div class="node"><div class="tag">Client</div><h4>Chrome extension</h4><p>MV3 service worker, context menu, region capture, React floating card</p></div>
+        <div class="node hl"><div class="tag">API</div><h4>Fastify on Render</h4><p>Google sign-in → JWT, per-user rate limits, Zod-validated routes</p></div>
+        <div class="node"><div class="tag">Data</div><h4>Postgres on Neon</h4><p>Prisma schema, append-only credit ledger, analysis history</p></div>
+        <div class="node"><div class="tag">AI</div><h4>Vision model</h4><p>OpenRouter or Gemini behind one adapter, structured JSON output</p></div>
+      </div>
+
+      <div class="decisions">
+        <div class="decision"><h3>Credits as an append-only ledger</h3><p>Every charge, refund and grant is its own row; the balance is their sum. Fully auditable, and a payment webhook becomes a single insert.</p></div>
+        <div class="decision"><h3>No overspending under concurrency</h3><p>A per-user Postgres advisory lock serializes debits, so two simultaneous requests can't push a balance below zero. Covered by a concurrent-debit test.</p></div>
+        <div class="decision"><h3>Idempotent analysis requests</h3><p>Each request carries an idempotency key. A retry replays the saved result instead of charging again; a failed AI call refunds automatically.</p></div>
+        <div class="decision"><h3>Swappable vision provider</h3><p>Models sit behind one interface, chosen by an environment variable, with a backstop that rebuilds the prompt if a model returns it empty.</p></div>
+      </div>
+
+      <dl class="stack">
+        <dt>Extension</dt><dd><span class="chip">Chrome MV3</span><span class="chip">React 18</span><span class="chip">TypeScript</span><span class="chip">Vite + CRXJS</span><span class="chip">TanStack Query</span></dd>
+        <dt>Backend</dt><dd><span class="chip">Node 20</span><span class="chip">Fastify 5</span><span class="chip">Prisma 5</span><span class="chip">Zod</span><span class="chip">JWT</span><span class="chip">pino</span></dd>
+        <dt>Data &amp; AI</dt><dd><span class="chip">PostgreSQL 16</span><span class="chip">OpenRouter</span><span class="chip">Google Gemini</span></dd>
+        <dt>Infra</dt><dd><span class="chip">Docker</span><span class="chip">Render Blueprint</span><span class="chip">Neon</span><span class="chip">GitHub Pages</span><span class="chip">Vitest</span></dd>
+      </dl>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <span>Image to Prompt · built by <a href="https://github.com/ishanjaiswal369" style="margin:0">ishanjaiswal369</a></span>
+      <span>
+        <a href="https://github.com/ishanjaiswal369/image-to-prompt">Source</a>
+        <a href="https://github.com/ishanjaiswal369/image-to-prompt/blob/main/docs/ARCHITECTURE.md">Architecture</a>
+        <a href="https://github.com/ishanjaiswal369/image-to-prompt/blob/main/PRIVACY.md">Privacy</a>
+      </span>
+    </div>
+  </footer>
+</body>
+</html>

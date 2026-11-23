@@ -7,7 +7,11 @@ this phase — see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full d
 including why certain spec details were adapted (permissions, auth flow, ledger
 concurrency).
 
-**Deploying:** see [`docs/DEPLOY.md`](docs/DEPLOY.md) (Neon + Render + Chrome Web Store) ·
+**Live:** [landing page](https://ishanjaiswal369.github.io/image-to-prompt/) ·
+[download the extension](https://github.com/ishanjaiswal369/image-to-prompt/releases/latest/download/image-to-prompt.zip) ·
+API on Render ([`/healthz`](https://image-to-prompt-api.onrender.com/healthz))
+
+**Deploying:** see [`docs/DEPLOY.md`](docs/DEPLOY.md) (Neon + Render + GitHub Release / Chrome Web Store) ·
 **Privacy:** [`PRIVACY.md`](PRIVACY.md)
 
 ## Prerequisites

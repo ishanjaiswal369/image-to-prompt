@@ -23,9 +23,10 @@ services:
       # Public OAuth client id (same one as extension/manifest.json) — not a secret.
       - key: GOOGLE_CLIENT_ID
         value: 441916701308-3p2g19q7p7bini4t5igelu0eql7a905g.apps.googleusercontent.com
-      # Comma-separated chrome-extension:// origins allowed by CORS (local unpacked build first).
+      # Comma-separated chrome-extension:// origins allowed by CORS. The ID is pinned by the
+      # `key` in extension/manifest.json, so every unpacked install gets this same ID.
       - key: EXTENSION_ORIGIN
-        value: chrome-extension://ldfpagaclmmaicecnpdmlbjgnempbapi
+        value: chrome-extension://lpcbjcihdlfbpdkcjkcnipaednhopabp
       - key: JWT_ACCESS_SECRET
         generateValue: true
       - key: JWT_REFRESH_SECRET

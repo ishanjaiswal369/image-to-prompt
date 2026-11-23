@@ -1,5 +1,6 @@
 {
   "manifest_version": 3,
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEApN6HdHzSlJygeo2SJ24fuKtv6gKo7ECcNb9uQp6gm0O9wGH8kxOCL09gP34Vfnjpqhy7QON750OQ/viqcQi5H/KzbONiRiNTkDg3AoCsuctyPNGktOuE9z68CFzke6ZTPOhAsFWzsKknPxVdyLae/7fcZKT3VLJper6j8uwgsrjd3A/zLfGUN4K1yhAHMH6jxkfUI4QINk2zF5XmT3xw3KgoRW1m1afMj3VZYl8yE9LFfgT5p/LCaQBZ/shmFZ0RSEnWMF1pT8wTfelxAX8JiCPrldp1sdYEYj4Y1X3czCbBd6AVxr1U5/VJM/iwKvsm5octiaKfn3y48MezlGTizQIDAQAB",
   "name": "Image to Prompt",
   "version": "0.1.0",
   "description": "Right-click any image, or select a screen region, to get a structured text-to-image prompt.",

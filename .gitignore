@@ -9,3 +9,5 @@ build/
 coverage/
 backend/generated/
 .turbo/
+release/
+.keys/

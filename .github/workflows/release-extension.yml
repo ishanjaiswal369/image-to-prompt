@@ -1,0 +1,47 @@
+# Push a tag like v0.1.0 → builds the extension and attaches image-to-prompt.zip to a GitHub Release.
+# The landing page links to releases/latest/download/image-to-prompt.zip, so it always serves the newest build.
+name: Release extension
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check manifest version matches tag
+        run: |
+          version="v$(node -p "require('./extension/manifest.json').version")"
+          if [ "$version" != "$GITHUB_REF_NAME" ]; then
+            echo "manifest.json version ($version) does not match tag ($GITHUB_REF_NAME)"; exit 1
+          fi
+
+      - name: Build extension (production → Render API)
+        run: npm run build:extension
+
+      - name: Package
+        run: cd extension/dist && zip -r ../../image-to-prompt.zip .
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: image-to-prompt.zip
+          body: |
+            **Install:** download `image-to-prompt.zip` below, unzip it to a folder you'll keep,
+            open `chrome://extensions`, turn on Developer mode, click **Load unpacked** and pick the folder.
+
+            Landing page: https://ishanjaiswal369.github.io/image-to-prompt/
+          generate_release_notes: true

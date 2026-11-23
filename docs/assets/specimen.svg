@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000">
+  <defs>
+    <linearGradient id="wall" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#E9DFCF"/>
+      <stop offset=".55" stop-color="#DDCFB9"/>
+      <stop offset="1" stop-color="#CDBCA2"/>
+    </linearGradient>
+    <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#C6B396"/>
+      <stop offset="1" stop-color="#AE9877"/>
+    </linearGradient>
+    <linearGradient id="beam" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFF8EA" stop-opacity=".95"/>
+      <stop offset=".6" stop-color="#F8ECD6" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#F4E6CC" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="niche" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#B29F82"/>
+      <stop offset=".45" stop-color="#C8B699"/>
+      <stop offset="1" stop-color="#D8C8AE"/>
+    </linearGradient>
+    <linearGradient id="vase" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#C9784D"/>
+      <stop offset=".3" stop-color="#AE5832"/>
+      <stop offset=".75" stop-color="#8A3F22"/>
+      <stop offset="1" stop-color="#6A2C18"/>
+    </linearGradient>
+    <linearGradient id="plinthFront" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ECE3D3"/>
+      <stop offset=".7" stop-color="#D6C8B0"/>
+      <stop offset="1" stop-color="#BEAD91"/>
+    </linearGradient>
+    <linearGradient id="plinthTop" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#F6EFE2"/>
+      <stop offset="1" stop-color="#E2D6C2"/>
+    </linearGradient>
+    <radialGradient id="vignette" cx=".45" cy=".42" r=".75">
+      <stop offset=".55" stop-color="#2A1F14" stop-opacity="0"/>
+      <stop offset="1" stop-color="#2A1F14" stop-opacity=".28"/>
+    </radialGradient>
+    <filter id="blur18" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="18"/></filter>
+    <filter id="blur36" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="36"/></filter>
+    <filter id="blur6" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="6"/></filter>
+    <filter id="grain" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" stitchTiles="stitch"/>
+      <feColorMatrix values="0 0 0 0 .16  0 0 0 0 .12  0 0 0 0 .08  0 0 0 .9 0"/>
+    </filter>
+  </defs>
+
+  <!-- plaster wall -->
+  <rect width="800" height="1000" fill="url(#wall)"/>
+
+  <!-- arched niche, left -->
+  <path d="M84 764 V430 A126 126 0 0 1 336 430 V764 Z" fill="url(#niche)"/>
+  <path d="M84 764 V430 A126 126 0 0 1 336 430" fill="none" stroke="#8F7C60" stroke-width="14" opacity=".35" filter="url(#blur6)"/>
+  <rect x="84" y="752" width="252" height="12" fill="#A89474" opacity=".5"/>
+
+  <!-- late sun through a window: diagonal beam with mullion shadows -->
+  <g filter="url(#blur18)">
+    <polygon points="30,0 330,0 800,520 800,840" fill="url(#beam)"/>
+  </g>
+  <g opacity=".22" filter="url(#blur6)">
+    <polygon points="168,0 186,0 800,690 800,712" fill="#9C8668"/>
+    <polygon points="30,250 330,190 360,206 60,268" fill="#9C8668" opacity=".7"/>
+  </g>
+
+  <!-- floor -->
+  <rect y="764" width="800" height="236" fill="url(#floor)"/>
+  <rect y="762" width="800" height="5" fill="#A38D6C" opacity=".55"/>
+
+  <!-- cast shadow of vase + plinth on the wall (light from upper left) -->
+  <polygon points="640,652 668,440 708,392 772,410 800,470 800,652" fill="#7D6648" opacity=".28" filter="url(#blur36)"/>
+  <polygon points="702,764 800,700 800,900 712,900" fill="#6E583C" opacity=".32" filter="url(#blur18)"/>
+
+  <!-- limestone plinth on the right third -->
+  <polygon points="470,656 696,656 712,640 486,640" fill="url(#plinthTop)"/>
+  <rect x="470" y="656" width="226" height="252" fill="url(#plinthFront)"/>
+  <polygon points="696,656 712,640 712,892 696,908" fill="#AE9C7F"/>
+  <rect x="470" y="900" width="242" height="10" fill="#7F6B50" opacity=".35" filter="url(#blur6)"/>
+
+  <!-- dried stem with seed heads -->
+  <g fill="none" stroke="#4A3626" stroke-linecap="round">
+    <path d="M591 366 C588 300 578 238 552 188 C540 166 531 148 524 126" stroke-width="2.6"/>
+    <path d="M566 236 C580 214 600 198 628 184" stroke-width="1.8"/>
+    <path d="M552 188 C536 176 520 172 500 172" stroke-width="1.6"/>
+    <path d="M584 292 C602 276 620 270 646 270" stroke-width="1.6"/>
+  </g>
+  <g fill="#5B4331">
+    <ellipse cx="523" cy="122" rx="7" ry="11" transform="rotate(-22 523 122)"/>
+    <ellipse cx="631" cy="182" rx="6" ry="9" transform="rotate(58 631 182)"/>
+    <ellipse cx="497" cy="171" rx="5.5" ry="8.5" transform="rotate(-80 497 171)"/>
+    <ellipse cx="649" cy="269" rx="5.5" ry="8.5" transform="rotate(82 649 269)"/>
+    <ellipse cx="540" cy="152" rx="4" ry="6.5" transform="rotate(-40 540 152)"/>
+  </g>
+
+  <!-- terracotta amphora -->
+  <path d="M556 642 C544 600 516 562 518 506 C520 456 558 430 565 402 L565 382 C565 374 559 371 557 364 L625 364 C623 371 617 374 617 382 L617 402 C624 430 662 456 664 506 C666 562 638 600 626 642 Z" fill="url(#vase)"/>
+  <ellipse cx="591" cy="364" rx="34" ry="6.5" fill="#6E2E19"/>
+  <ellipse cx="591" cy="362.5" rx="27" ry="4" fill="#3E1A0E"/>
+  <path d="M548 470 C536 500 536 548 552 590" fill="none" stroke="#F3C9A6" stroke-width="10" stroke-linecap="round" opacity=".28" filter="url(#blur6)"/>
+  <rect x="556" y="636" width="70" height="6" fill="#5E2715" opacity=".5"/>
+
+  <!-- vignette + grain -->
+  <rect width="800" height="1000" fill="url(#vignette)"/>
+  <rect width="800" height="1000" filter="url(#grain)" opacity=".16"/>
+</svg>

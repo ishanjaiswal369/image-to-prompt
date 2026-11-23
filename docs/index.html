@@ -3,309 +3,570 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Image to Prompt</title>
-  <meta name="description" content="Chrome extension: right-click any image or select a screen region to get a structured, ready-to-use text-to-image prompt.">
-  <meta property="og:title" content="Image to Prompt">
-  <meta property="og:description" content="Right-click any image. Get a ready-to-use text-to-image prompt.">
+  <title>Image to Prompt — Every image has a prompt</title>
+  <meta name="description" content="A Chrome extension that reads any image — right-click it or select a region — and writes a detailed, ready-to-use text-to-image prompt.">
+  <meta name="theme-color" content="#f1ede6">
+  <meta property="og:title" content="Image to Prompt — Every image has a prompt">
+  <meta property="og:description" content="Discover the visual language behind every image. Transform visual references into detailed, ready-to-use prompts with AI.">
   <meta property="og:image" content="https://ishanjaiswal369.github.io/image-to-prompt/assets/og.png">
   <meta property="og:url" content="https://ishanjaiswal369.github.io/image-to-prompt/">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" type="image/png" href="assets/favicon-32.png">
+
+  <script>
+    /* Motion is opt-in: only when the visitor allows it. A safety timer reveals the page if scripts fail. */
+    (function () {
+      var d = document.documentElement;
+      if (window.matchMedia && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        d.classList.add("motion", "is-loading");
+        setTimeout(function () {
+          if (!window.__siteReady) d.classList.remove("motion", "is-loading");
+        }, 4500);
+      }
+    })();
+  </script>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg: #fafaf9;
-      --bg-elevated: #ffffff;
-      --bg-sunken: #f2f2f0;
-      --border: #e7e5e4;
-      --border-strong: #d6d3d1;
-      --text: #18181b;
-      --text-secondary: #52525b;
-      --text-tertiary: #8f9096;
-      --accent: #3b82f6;
-      --accent-strong: #2563eb;
-      --accent-soft: rgba(59, 130, 246, 0.10);
-      --accent-text: #ffffff;
-      --shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06);
-      --radius: 14px;
-      --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
-    }
-    :root[data-theme="dark"] {
-      --bg: #0e0f12; --bg-elevated: #17181d; --bg-sunken: #121318;
-      --border: #26282f; --border-strong: #35373f;
-      --text: #f0f0f2; --text-secondary: #a1a3ab; --text-tertiary: #6c6e77;
-      --accent-soft: rgba(59, 130, 246, 0.16);
-      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px rgba(0,0,0,.35);
-    }
-    @media (prefers-color-scheme: dark) {
-      :root:not([data-theme="light"]) {
-        --bg: #0e0f12; --bg-elevated: #17181d; --bg-sunken: #121318;
-        --border: #26282f; --border-strong: #35373f;
-        --text: #f0f0f2; --text-secondary: #a1a3ab; --text-tertiary: #6c6e77;
-        --accent-soft: rgba(59, 130, 246, 0.16);
-        --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px rgba(0,0,0,.35);
-      }
-    }
-    *, *::before, *::after { box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
-    body {
-      margin: 0; background: var(--bg); color: var(--text);
-      font: 16px/1.6 Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
-      -webkit-font-smoothing: antialiased;
-    }
-    a { color: inherit; }
-    .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
-    @media (max-width: 600px) { .wrap { padding: 0 16px; } }
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@1&family=Inter+Tight:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+  <link rel="preload" as="image" href="assets/specimen.svg">
+  <link rel="stylesheet" href="assets/site.css">
 
-    /* nav */
-    nav { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 85%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); }
-    nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 60px; }
-    .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; text-decoration: none; }
-    .mark { width: 22px; height: 22px; border-radius: 6.5px; background: var(--accent); flex: none; }
-    .nav-links { display: flex; align-items: center; gap: 24px; font-size: 14px; }
-    .nav-links a { text-decoration: none; color: var(--text-secondary); }
-    .nav-links a:hover { color: var(--text); }
-    @media (max-width: 640px) { .nav-links .hide-sm { display: none; } }
-
-    /* buttons */
-    .btn { display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 18px; border-radius: 10px; font: 600 15px/1 Inter, system-ui, sans-serif; text-decoration: none; border: 1px solid transparent; transition: background .15s, border-color .15s; }
-    .btn-primary { background: var(--accent); color: var(--accent-text); }
-    .btn-primary:hover { background: var(--accent-strong); }
-    .btn-secondary { border-color: var(--border-strong); color: var(--text); background: var(--bg-elevated); }
-    .btn-secondary:hover { border-color: var(--text-tertiary); }
-    .btn-sm { height: 34px; padding: 0 12px; font-size: 13px; border-radius: 8px; }
-    .btn svg { width: 18px; height: 18px; }
-
-    /* hero */
-    .hero { padding: 88px 0 72px; display: grid; grid-template-columns: 1.05fr 1fr; gap: 56px; align-items: center; }
-    @media (max-width: 860px) { .hero { grid-template-columns: 1fr; padding: 56px 0 48px; gap: 40px; } }
-    .eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: var(--accent); background: var(--accent-soft); padding: 5px 12px; border-radius: 999px; margin-bottom: 20px; }
-    h1 { font-size: clamp(36px, 5.4vw, 56px); line-height: 1.06; letter-spacing: -0.035em; margin: 0 0 20px; font-weight: 700; text-wrap: balance; }
-    .lede { font-size: 18px; color: var(--text-secondary); margin: 0 0 32px; max-width: 34em; }
-    .cta { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
-    .cta-meta { font-size: 13px; color: var(--text-tertiary); margin-top: 14px; }
-
-    /* product illustration */
-    .scene { position: relative; aspect-ratio: 5 / 4; border-radius: 20px; border: 1px solid var(--border); background:
-      radial-gradient(120% 80% at 20% 10%, rgba(59,130,246,.22), transparent 60%),
-      radial-gradient(90% 70% at 90% 90%, rgba(234,177,85,.20), transparent 60%),
-      var(--bg-sunken); overflow: hidden; box-shadow: var(--shadow); }
-    .photo { position: absolute; left: 7%; top: 9%; width: 52%; aspect-ratio: 4/5; border-radius: 12px;
-      background: linear-gradient(160deg, #f6c58c 0%, #e98a6a 38%, #6b4c9a 75%, #2b2f5a 100%); box-shadow: 0 10px 30px rgba(0,0,0,.25); }
-    .photo::after { content: ""; position: absolute; left: 22%; bottom: 14%; width: 56%; height: 34%; border-radius: 50% 50% 8px 8px; background: rgba(20,18,40,.55); }
-    .photo::before { content: ""; position: absolute; right: 18%; top: 14%; width: 22%; aspect-ratio: 1; border-radius: 50%; background: rgba(255,240,200,.85); }
-    .menu { position: absolute; z-index: 2; left: 24%; top: 30%; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 9px; box-shadow: var(--shadow); padding: 5px; font-size: 12.5px; min-width: 200px; }
-    .menu div { padding: 6px 10px; border-radius: 6px; color: var(--text-tertiary); white-space: nowrap; }
-    .menu .on { background: var(--accent); color: #fff; display: flex; align-items: center; gap: 8px; }
-    .menu .on i { width: 10px; height: 10px; border-radius: 3px; background: #fff; display: inline-block; }
-    .card { position: absolute; right: 5%; bottom: 6%; width: 44%; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); padding: 14px; }
-    .card-head { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; margin-bottom: 12px; }
-    .card-head .mark { width: 14px; height: 14px; border-radius: 4px; }
-    .field { margin-bottom: 9px; }
-    .field b { display: block; font-size: 9.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px; }
-    .line { height: 6px; border-radius: 3px; background: var(--border); margin-bottom: 4px; }
-    .prompt-box { margin-top: 12px; padding: 9px; border-radius: 9px; background: var(--accent-soft); }
-    .prompt-box .line { background: color-mix(in srgb, var(--accent) 40%, transparent); }
-    @media (max-width: 480px) { .menu { min-width: 0; font-size: 11px; left: 16%; top: 24%; } .card { width: 54%; padding: 10px; } }
-
-    /* sections */
-    section { padding: 72px 0; border-top: 1px solid var(--border); }
-    .section-head { max-width: 640px; margin-bottom: 40px; }
-    .kicker { font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
-    h2 { font-size: clamp(26px, 3.4vw, 36px); line-height: 1.15; letter-spacing: -0.025em; margin: 0 0 12px; font-weight: 700; text-wrap: balance; }
-    .section-head p { color: var(--text-secondary); margin: 0; font-size: 17px; }
-
-    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-    @media (max-width: 800px) { .grid-3 { grid-template-columns: 1fr; } }
-    .tile { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; }
-    .tile .num { font: 500 13px var(--mono); color: var(--accent); margin-bottom: 14px; }
-    .tile h3 { margin: 0 0 6px; font-size: 17px; letter-spacing: -0.01em; }
-    .tile p { margin: 0; color: var(--text-secondary); font-size: 15px; }
-
-    .fields { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; align-items: center; }
-    .chip { font: 500 13px var(--mono); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-elevated); color: var(--text-secondary); }
-    .chip.accent { border-color: transparent; background: var(--accent-soft); color: var(--accent); }
-    .arrow { color: var(--text-tertiary); font-size: 14px; padding: 0 2px; }
-    .works-with { margin-top: 18px; font-size: 14px; color: var(--text-tertiary); }
-
-    /* install */
-    .install { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: start; }
-    @media (max-width: 860px) { .install { grid-template-columns: 1fr; gap: 32px; } }
-    ol.steps { list-style: none; margin: 0; padding: 0; counter-reset: s; }
-    ol.steps li { counter-increment: s; position: relative; padding: 0 0 22px 48px; }
-    ol.steps li::before { content: counter(s); position: absolute; left: 0; top: -2px; width: 30px; height: 30px; border-radius: 9px; background: var(--accent-soft); color: var(--accent); font: 600 14px/30px var(--mono); text-align: center; }
-    ol.steps li strong { display: block; font-weight: 600; margin-bottom: 2px; }
-    ol.steps li span { color: var(--text-secondary); font-size: 15px; }
-    code { font: 500 0.88em var(--mono); background: var(--bg-sunken); border: 1px solid var(--border); padding: 1px 6px; border-radius: 6px; color: var(--text); }
-    .note { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; }
-    .note h3 { margin: 0 0 12px; font-size: 16px; }
-    .note ul { margin: 0; padding-left: 18px; color: var(--text-secondary); font-size: 15px; }
-    .note li { margin-bottom: 8px; }
-    .note .btn { margin-top: 16px; }
-
-    /* architecture */
-    .arch { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; align-items: stretch; margin-bottom: 40px; }
-    @media (max-width: 860px) { .arch { grid-template-columns: 1fr 1fr; } }
-    @media (max-width: 480px) { .arch { grid-template-columns: 1fr; } }
-    .node { position: relative; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
-    .node .tag { font: 500 11px var(--mono); color: var(--text-tertiary); text-transform: uppercase; letter-spacing: .06em; }
-    .node h4 { margin: 6px 0 4px; font-size: 15px; }
-    .node p { margin: 0; font-size: 13.5px; color: var(--text-secondary); line-height: 1.5; }
-    .node.hl { border-color: color-mix(in srgb, var(--accent) 55%, transparent); box-shadow: 0 0 0 3px var(--accent-soft); }
-    @media (min-width: 861px) {
-      .node:not(:last-child)::after { content: "→"; position: absolute; right: -12px; top: 50%; transform: translate(50%, -50%); color: var(--text-tertiary); font-size: 14px; z-index: 1; }
-    }
-    .decisions { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    @media (max-width: 800px) { .decisions { grid-template-columns: 1fr; } }
-    .decision { padding: 20px 22px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--bg-elevated); }
-    .decision h3 { margin: 0 0 6px; font-size: 16px; }
-    .decision p { margin: 0; color: var(--text-secondary); font-size: 14.5px; }
-    .stack { margin-top: 40px; display: grid; grid-template-columns: 140px 1fr; gap: 12px 24px; font-size: 15px; }
-    @media (max-width: 600px) { .stack { grid-template-columns: 1fr; gap: 4px; } .stack dd { margin-bottom: 12px; } }
-    .stack dt { color: var(--text-tertiary); font-weight: 500; }
-    .stack dd { margin: 0; display: flex; flex-wrap: wrap; gap: 6px; }
-
-    footer { border-top: 1px solid var(--border); padding: 32px 0 48px; font-size: 14px; color: var(--text-tertiary); }
-    footer .wrap { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
-    footer a { color: var(--text-secondary); text-decoration: none; margin-left: 20px; }
-    footer a:first-child { margin-left: 0; }
-    footer a:hover { color: var(--text); }
-  </style>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/lenis@1.1.13/dist/lenis.min.js"></script>
+  <script defer src="assets/site.js"></script>
 </head>
 <body>
-  <nav>
-    <div class="wrap">
-      <a class="brand" href="#"><span class="mark"></span>Image to Prompt</a>
-      <div class="nav-links">
-        <a class="hide-sm" href="#how">How it works</a>
-        <a class="hide-sm" href="#install">Install</a>
-        <a class="hide-sm" href="#tech">Under the hood</a>
-        <a class="btn btn-secondary btn-sm" href="https://github.com/ishanjaiswal369/image-to-prompt">
-          <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
-          GitHub
-        </a>
+  <!-- icon sprite (Lucide, ISC licence) -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></symbol>
+    <symbol id="i-up-right" viewBox="0 0 24 24"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></symbol>
+    <symbol id="i-up" viewBox="0 0 24 24"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  </svg>
+
+  <a class="skip" href="#main">Skip to content</a>
+
+  <div class="preloader" aria-hidden="true">
+    <div class="preloader__cols"><span></span><span></span><span></span><span></span></div>
+    <div class="preloader__row">
+      <p class="meta">Image to Prompt</p>
+      <p class="meta">Loading <span class="preloader__count" data-preload-count>000</span>%</p>
+    </div>
+    <div class="preloader__line">
+      <span class="lead">Reading the image</span>
+      <span class="lead"><em>— subject, light, mood</em></span>
+    </div>
+    <div class="preloader__bar"><span data-preload-bar></span></div>
+  </div>
+
+  <div class="progress" aria-hidden="true"><span data-progress></span></div>
+  <div class="cursor" aria-hidden="true"></div>
+
+  <header class="nav" data-nav>
+    <div class="nav__inner grid">
+      <a class="brand" href="#top" aria-label="Image to Prompt, back to top">
+        <span class="brand__mark" aria-hidden="true"></span>
+        <span>Image to Prompt</span>
+      </a>
+      <nav class="nav__links" aria-label="Primary">
+        <a class="nav__link" href="#how" data-nav-link="how"><span class="idx">01</span><span class="roll"><span data-text="How it works">How it works</span></span></a>
+        <a class="nav__link" href="#features" data-nav-link="features"><span class="idx">02</span><span class="roll"><span data-text="Features">Features</span></span></a>
+        <a class="nav__link" href="#tech" data-nav-link="tech"><span class="idx">03</span><span class="roll"><span data-text="Technology">Technology</span></span></a>
+        <a class="nav__link" href="#install" data-nav-link="install"><span class="idx">04</span><span class="roll"><span data-text="Install">Install</span></span></a>
+      </nav>
+      <a class="btn btn--sm nav__cta" href="https://github.com/ishanjaiswal369/image-to-prompt/releases/latest/download/image-to-prompt.zip">
+        <span class="roll"><span data-text="Download">Download</span></span>
+        <span class="btn__icon" aria-hidden="true">
+          <svg class="icon" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><use href="#i-down"/></svg>
+          <svg class="icon" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><use href="#i-down"/></svg>
+        </span>
+      </a>
+      <button class="nav__toggle" type="button" aria-expanded="false" aria-controls="menu" data-menu-toggle>
+        <span data-menu-label>Menu</span>
+        <span class="nav__toggle-lines" aria-hidden="true"></span>
+      </button>
+    </div>
+  </header>
+
+  <div class="menu" id="menu" data-menu>
+    <nav aria-label="Mobile">
+      <ol class="menu__links">
+        <li><a href="#how" style="--i:0"><span class="idx">01</span>How it works</a></li>
+        <li><a href="#features" style="--i:1"><span class="idx">02</span>Features</a></li>
+        <li><a href="#tech" style="--i:2"><span class="idx">03</span>Technology</a></li>
+        <li><a href="#install" style="--i:3"><span class="idx">04</span>Install</a></li>
+      </ol>
+    </nav>
+    <div class="menu__foot">
+      <a class="btn" href="https://github.com/ishanjaiswal369/image-to-prompt/releases/latest/download/image-to-prompt.zip">
+        <span>Download for Chrome</span>
+        <span class="btn__icon" aria-hidden="true">
+          <svg class="icon" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><use href="#i-down"/></svg>
+          <svg class="icon" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><use href="#i-down"/></svg>
+        </span>
+      </a>
+      <div class="menu__meta">
+        <p class="meta meta--muted">Version 0.1.0</p>
+        <a class="meta link link--quiet" href="https://github.com/ishanjaiswal369/image-to-prompt">Source on GitHub</a>
       </div>
     </div>
-  </nav>
+  </div>
 
-  <main class="wrap">
-    <header class="hero">
-      <div>
-        <div class="eyebrow">Chrome extension · Free</div>
-        <h1>Turn any image into a ready&#8209;to&#8209;use prompt.</h1>
-        <p class="lede">Right-click an image, or drag over any part of your screen. Image to Prompt reads it with a vision model and writes a detailed text-to-image prompt you can paste straight into your generator.</p>
-        <div class="cta">
-          <a class="btn btn-primary" href="https://github.com/ishanjaiswal369/image-to-prompt/releases/latest/download/image-to-prompt.zip">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0-4.5-4.5M12 15l4.5-4.5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
-            Download for Chrome
-          </a>
-          <a class="btn btn-secondary" href="#install">How to install</a>
-        </div>
-        <div class="cta-meta">v0.1.0 · Chrome 116+ · Sign in with Google · Free credits on sign-up</div>
+  <main id="main">
+
+    <!-- ===================== 01 HERO ===================== -->
+    <section class="hero" id="top" aria-labelledby="hero-title">
+      <div class="hero__cols" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+
+      <div class="grid hero__meta">
+        <p class="meta" data-hero style="--d:0"><span class="idx">(01)</span>&nbsp; Image to Prompt</p>
+        <p class="meta meta--muted" data-hero style="--d:.05">Chrome extension — v0.1.0</p>
+        <p class="meta meta--muted" data-hero style="--d:.1">Image → Analysis → Prompt</p>
+        <p class="meta meta--muted" data-hero style="--d:.15">Free, with sign-up credits</p>
       </div>
 
-      <div class="scene" role="img" aria-label="Illustration: right-clicking an image opens 'Analyze with Image to Prompt', and a floating card shows the structured result.">
-        <div class="photo"></div>
-        <div class="menu">
-          <div>Open image in new tab</div>
-          <div>Copy image</div>
-          <div class="on"><i></i>Analyze with Image to Prompt</div>
-        </div>
-        <div class="card">
-          <div class="card-head"><span class="mark"></span>Image to Prompt</div>
-          <div class="field"><b>Subject</b><div class="line" style="width:92%"></div><div class="line" style="width:70%"></div></div>
-          <div class="field"><b>Style</b><div class="line" style="width:80%"></div></div>
-          <div class="field"><b>Lighting</b><div class="line" style="width:66%"></div></div>
-          <div class="prompt-box"><div class="line" style="width:96%"></div><div class="line" style="width:88%"></div><div class="line" style="width:58%;margin:0"></div></div>
-        </div>
-      </div>
-    </header>
+      <div class="grid hero__body">
+        <h1 class="display hero__title" id="hero-title">
+          <span class="ln"><span>Every Image</span></span>
+          <span class="ln"><span>Has a <em>Prompt.</em></span></span>
+        </h1>
 
-    <section id="how">
-      <div class="section-head">
-        <div class="kicker">How it works</div>
-        <h2>Three steps, no tab switching.</h2>
-        <p>Everything happens in a floating card on the page you're already on. It stays open when you click away.</p>
+        <figure class="hero__figure">
+          <div class="frame">
+            <img src="assets/specimen.svg" width="800" height="1000" alt="Still life: a terracotta vase holding a dried stem, on a limestone plinth beside an arched wall niche, in warm late light." data-parallax>
+          </div>
+          <figcaption class="figcap meta meta--muted" data-hero style="--d:.5">
+            <span>Fig. 01</span><span>Still life, late side light</span>
+          </figcaption>
+        </figure>
+
+        <div class="hero__intro">
+          <p class="lead" data-hero style="--d:.25">Discover the visual language behind every image. Transform visual references into detailed, ready-to-use prompts with AI.</p>
+          <div class="hero__cta" data-hero style="--d:.35">
+            <a class="btn" href="https://github.com/ishanjaiswal369/image-to-prompt/releases/latest/download/image-to-prompt.zip">
+              <span class="roll"><span data-text="Download for Chrome">Download for Chrome</span></span>
+              <span class="btn__icon" aria-hidden="true">
+                <svg class="icon" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><use href="#i-down"/></svg>
+                <svg class="icon" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><use href="#i-down"/></svg>
+              </span>
+            </a>
+            <a class="link" href="#install">How to install</a>
+          </div>
+        </div>
       </div>
-      <div class="grid-3">
-        <div class="tile"><div class="num">01</div><h3>Pick an image</h3><p>Right-click any image and choose <em>Analyze with Image to Prompt</em>, or click the toolbar icon and drag to select any region of the screen.</p></div>
-        <div class="tile"><div class="num">02</div><h3>A vision model reads it</h3><p>The image is analyzed for subject, framing, rendering style, light and atmosphere, each kept to its own field.</p></div>
-        <div class="tile"><div class="num">03</div><h3>Copy and generate</h3><p>Copy the finished prompt or the raw JSON in one click. Past results are saved in your history.</p></div>
+
+      <div class="grid hero__foot">
+        <p class="meta scroll-cue" data-hero style="--d:.55"><span class="scroll-cue__line" aria-hidden="true"></span>Scroll to discover</p>
+        <p class="meta meta--muted" data-hero style="--d:.6">Right-click any image</p>
+        <p class="meta meta--muted" data-hero style="--d:.65">— or select any region</p>
+        <p class="meta meta--muted" data-hero style="--d:.7">Chrome 116+ · Sign in with Google</p>
       </div>
-      <div class="fields">
-        <span class="chip">subject</span><span class="chip">composition</span><span class="chip">style</span><span class="chip">lighting</span><span class="chip">mood</span>
-        <span class="arrow">→</span><span class="chip accent">promptText</span>
-      </div>
-      <div class="works-with">Works with Midjourney, Stable Diffusion, DALL·E, Flux and other image generators.</div>
     </section>
 
-    <section id="install">
-      <div class="install">
-        <div>
-          <div class="section-head" style="margin-bottom:28px">
-            <div class="kicker">Install</div>
-            <h2>Up and running in a minute.</h2>
-            <p>Installed directly from the download, so it takes four quick steps instead of one click.</p>
+    <!-- ===================== 02 DEMONSTRATION ===================== -->
+    <section class="demo" id="demo" data-theme="dark" aria-labelledby="demo-title">
+      <div class="grid section-head section-head--split">
+        <p class="meta label" data-fade><span class="idx">(02)</span>Demonstration</p>
+        <h2 class="h2" id="demo-title" data-lines>
+          <span class="ln"><span>One image,</span></span>
+          <span class="ln"><span>read like a <em>drawing.</em></span></span>
+        </h2>
+        <p class="body-lg" data-fade style="--d:.1">Every result is built in three movements. The image is captured, a vision model reads it through five lenses, and the readings are composed into a single prompt.</p>
+      </div>
+
+      <div class="demo__stage" data-demo>
+        <div class="grid demo__bar">
+          <ol class="demo__steps" aria-label="Stages">
+            <li data-step><span class="idx">01</span>Image</li>
+            <li data-step><span class="idx">02</span>Analysis</li>
+            <li data-step><span class="idx">03</span>Prompt</li>
+          </ol>
+          <p class="meta meta--muted demo__count" aria-hidden="true"><span data-demo-count>05</span> / 05 fields</p>
+          <div class="demo__track" aria-hidden="true"><span data-demo-track></span></div>
+        </div>
+
+        <div class="grid demo__body">
+          <figure class="demo__figure">
+            <div class="frame">
+              <img src="assets/specimen.svg" width="800" height="1000" alt="The same still life, annotated where each field was read: the vase, the rule-of-thirds grid, the plaster niche, the light beam and the floor." loading="lazy">
+              <div class="thirds" aria-hidden="true" data-thirds><span></span><span></span><span></span><span></span></div>
+              <ul class="markers" aria-hidden="true">
+                <li class="marker marker--left" style="--x:73.8%;--y:51%" data-marker><span class="marker__ring"></span><span class="marker__tag"><span class="idx">01</span>Subject</span></li>
+                <li class="marker marker--left" style="--x:66.67%;--y:66.67%" data-marker><span class="marker__ring"></span><span class="marker__tag"><span class="idx">02</span>Composition</span></li>
+                <li class="marker" style="--x:24%;--y:56%" data-marker><span class="marker__ring"></span><span class="marker__tag"><span class="idx">03</span>Style</span></li>
+                <li class="marker" style="--x:22%;--y:9%" data-marker><span class="marker__ring"></span><span class="marker__tag"><span class="idx">04</span>Lighting</span></li>
+                <li class="marker" style="--x:40%;--y:88%" data-marker><span class="marker__ring"></span><span class="marker__tag"><span class="idx">05</span>Mood</span></li>
+              </ul>
+            </div>
+            <figcaption class="figcap meta"><span>Fig. 02 — Annotated reading</span><span>Illustrative example</span></figcaption>
+          </figure>
+
+          <div class="demo__panel">
+            <dl class="fields" data-fields>
+              <div class="field" data-field="subject">
+                <dt class="field__label meta"><span class="idx">01</span>Subject</dt>
+                <dd class="field__text" style="margin:0">A matte terracotta amphora with a narrow neck and a softly weathered surface, holding a single dried stem with five small seed heads, standing upright on a pale limestone plinth.</dd>
+              </div>
+              <div class="field" data-field="composition">
+                <dt class="field__label meta"><span class="idx">02</span>Composition</dt>
+                <dd class="field__text" style="margin:0">Eye-level medium shot. The vase and plinth sit on the right third; an arched wall niche balances the left, with generous negative space above.</dd>
+              </div>
+              <div class="field" data-field="style">
+                <dt class="field__label meta"><span class="idx">03</span>Style</dt>
+                <dd class="field__text" style="margin:0">Minimalist still-life photograph in a muted earth palette of sand, clay and stone, with fine film grain and soft, even focus.</dd>
+              </div>
+              <div class="field" data-field="lighting">
+                <dt class="field__label meta"><span class="idx">04</span>Lighting</dt>
+                <dd class="field__text" style="margin:0">Low, warm sunlight from the upper left draws a soft diagonal beam across the plaster wall and throws gentle shadows to the right.</dd>
+              </div>
+              <div class="field" data-field="mood">
+                <dt class="field__label meta"><span class="idx">05</span>Mood</dt>
+                <dd class="field__text" style="margin:0">Calm and contemplative — the empty niche and slow, slanting light suggest a quiet late afternoon.</dd>
+              </div>
+            </dl>
+
+            <div class="output" data-output>
+              <div class="output__head">
+                <div class="tabs" role="tablist" aria-label="Output format">
+                  <button class="tab" type="button" role="tab" id="tab-prompt" aria-selected="true" aria-controls="panel-prompt" data-tab="prompt">Prompt</button>
+                  <button class="tab" type="button" role="tab" id="tab-json" aria-selected="false" aria-controls="panel-json" tabindex="-1" data-tab="json">JSON</button>
+                </div>
+                <button class="copy" type="button" data-copy>
+                  <svg class="icon icon--copy" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-copy"/></svg>
+                  <svg class="icon icon--done" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-check"/></svg>
+                  <span data-copy-label>Copy prompt</span>
+                </button>
+              </div>
+              <div class="output__body">
+                <div role="tabpanel" id="panel-prompt" aria-labelledby="tab-prompt">
+                  <p class="output__prompt" data-prompt>A minimalist still-life photograph of a matte terracotta amphora holding a single dried stem with small seed heads, standing on a pale limestone plinth on the right third of the frame. An arched niche is set into a warm plaster wall on the left, leaving generous negative space above. Low late-afternoon sunlight enters from the upper left, drawing a soft diagonal beam across the wall and casting gentle shadows to the right. Muted palette of sand, clay and stone, fine film grain, soft matte textures, eye-level medium shot, calm and contemplative atmosphere.</p>
+                </div>
+                <div role="tabpanel" id="panel-json" aria-labelledby="tab-json" hidden>
+                  <pre class="output__json" data-json data-lenis-prevent tabindex="0"></pre>
+                </div>
+              </div>
+              <p class="meta output__note">Illustrative example — in the extension, every reading comes from the vision model.</p>
+              <p class="sr-only" aria-live="polite" data-copy-status></p>
+            </div>
           </div>
-          <ol class="steps">
-            <li><strong>Download the zip</strong><span><a href="https://github.com/ishanjaiswal369/image-to-prompt/releases/latest/download/image-to-prompt.zip">image-to-prompt.zip</a> from the latest release.</span></li>
-            <li><strong>Unzip it to a folder you'll keep</strong><span>Chrome loads the extension from that folder, so don't delete it afterwards.</span></li>
-            <li><strong>Turn on Developer mode</strong><span>Open <code>chrome://extensions</code> and flip the switch in the top-right corner.</span></li>
-            <li><strong>Load unpacked</strong><span>Click <em>Load unpacked</em>, pick the unzipped folder, then pin it from the puzzle-piece menu.</span></li>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== 03 HOW IT WORKS ===================== -->
+    <section class="section how" id="how" aria-labelledby="how-title">
+      <div class="grid section-head">
+        <p class="meta label" data-fade><span class="idx">(03)</span>How it works</p>
+        <h2 class="h2" id="how-title" data-lines>
+          <span class="ln"><span>Three movements.</span></span>
+          <span class="ln"><span>No tab <em>switching.</em></span></span>
+        </h2>
+        <p class="body-lg" data-fade style="--d:.1">Everything happens in a floating card on the page you're already on — and it stays open when you click away.</p>
+      </div>
+
+      <ol class="how__list">
+        <li class="grid how__row" data-rule>
+          <span class="how__num" data-fade aria-hidden="true">01</span>
+          <h3 class="h3" data-fade style="--d:.05">Choose</h3>
+          <p class="how__text" data-fade style="--d:.1">Right-click any image and pick <em>Analyze with Image to Prompt</em> — or click the toolbar icon and drag across any region of the tab.</p>
+          <div class="how__art" data-fade style="--d:.15" aria-hidden="true">
+            <svg viewBox="0 0 240 180" fill="none" stroke="#191714" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="28" y="26" width="112" height="128" fill="#f1ede6"/>
+              <path d="M28 128 L66 92 L92 116 L112 98 L140 126" stroke-opacity=".5"/>
+              <circle cx="108" cy="58" r="9" stroke-opacity=".5"/>
+              <rect x="98" y="70" width="118" height="70" fill="#f1ede6"/>
+              <path d="M108 86 H180" stroke-opacity=".35"/>
+              <path d="M108 102 H168" stroke-opacity=".35"/>
+              <rect x="102" y="113" width="110" height="20" fill="#a4512f" stroke="none"/>
+              <path d="M110 123 H196" stroke="#f1ede6"/>
+              <path d="M86 60 L86 84 L92 78 L97 89 L101 87 L96 76 L104 76 Z" fill="#191714"/>
+            </svg>
+          </div>
+        </li>
+        <li class="grid how__row" data-rule>
+          <span class="how__num" data-fade aria-hidden="true">02</span>
+          <h3 class="h3" data-fade style="--d:.05">Read</h3>
+          <p class="how__text" data-fade style="--d:.1">A vision model studies the image and separates what it sees into subject, composition, style, lighting and mood — each kept to its own field.</p>
+          <div class="how__art" data-fade style="--d:.15" aria-hidden="true">
+            <svg viewBox="0 0 240 180" fill="none" stroke="#191714" stroke-width="1" stroke-linecap="round">
+              <path d="M40 30 H54 M40 30 V44 M200 30 H186 M200 30 V44 M40 150 H54 M40 150 V136 M200 150 H186 M200 150 V136"/>
+              <path d="M93 30 V150 M146 30 V150 M40 70 H200 M40 110 H200" stroke-opacity=".18"/>
+              <path d="M40 96 H200" stroke="#a4512f"/>
+              <circle cx="146" cy="70" r="5" fill="#a4512f" stroke="none"/>
+              <circle cx="146" cy="70" r="11"/>
+              <circle cx="72" cy="122" r="3" fill="#191714" stroke="none"/>
+              <circle cx="176" cy="128" r="3" fill="#191714" stroke="none"/>
+              <circle cx="66" cy="46" r="3" fill="#191714" stroke="none"/>
+            </svg>
+          </div>
+        </li>
+        <li class="grid how__row" data-rule>
+          <span class="how__num" data-fade aria-hidden="true">03</span>
+          <h3 class="h3" data-fade style="--d:.05">Use</h3>
+          <p class="how__text" data-fade style="--d:.1">Copy the finished prompt — or the structured JSON — in one click. Every result is saved to your history.</p>
+          <div class="how__art" data-fade style="--d:.15" aria-hidden="true">
+            <svg viewBox="0 0 240 180" fill="none" stroke="#191714" stroke-width="1" stroke-linecap="round">
+              <path d="M36 44 H170 M36 60 H182 M36 76 H160 M36 92 H176 M36 108 H120" stroke-opacity=".45"/>
+              <rect x="150" y="104" width="54" height="30" fill="#191714" stroke="none"/>
+              <path d="M166 119 l5 5 l11 -11" stroke="#f1ede6" stroke-width="1.4"/>
+              <path d="M36 138 H96" stroke="#a4512f"/>
+              <path d="M36 150 H80" stroke-opacity=".3"/>
+            </svg>
+          </div>
+        </li>
+      </ol>
+    </section>
+
+    <!-- ===================== 04 FEATURES ===================== -->
+    <section class="section features" id="features" aria-labelledby="features-title">
+      <div class="grid section-head section-head--split">
+        <p class="meta label" data-fade><span class="idx">(04)</span>Features</p>
+        <h2 class="h2" id="features-title" data-lines>
+          <span class="ln"><span>Five lenses</span></span>
+          <span class="ln"><span>on every <em>image.</em></span></span>
+        </h2>
+        <p class="body-lg" data-fade style="--d:.1">The model is instructed to keep each reading to its own job, so style never leaks into subject and lighting never hides in mood. Then the five are composed into one paragraph.</p>
+      </div>
+
+      <div class="lenses" data-lenses>
+        <div class="lenses__stage">
+          <div class="grid lenses__top">
+            <p class="meta">The analysis</p>
+            <p class="meta meta--muted" aria-hidden="true"><span data-lens-count>01</span> / 05</p>
+          </div>
+          <ol class="lenses__list">
+            <li class="lens" data-lens>
+              <span class="lens__idx idx">01</span>
+              <h3 class="lens__word"><span>Subject</span></h3>
+              <div class="lens__body">
+                <p class="lens__desc">Every visible subject in precise physical detail — type, colours, textures, pose, and what it holds, wears or touches.</p>
+                <p class="lens__eg meta">Who or what, and exactly how it appears.</p>
+              </div>
+            </li>
+            <li class="lens" data-lens>
+              <span class="lens__idx idx">02</span>
+              <h3 class="lens__word"><span>Composition</span></h3>
+              <div class="lens__body">
+                <p class="lens__desc">Camera angle, shot type, where the subject sits in the frame, and how foreground and background divide the space.</p>
+                <p class="lens__eg meta">Framing and layout only.</p>
+              </div>
+            </li>
+            <li class="lens" data-lens>
+              <span class="lens__idx idx">03</span>
+              <h3 class="lens__word"><span>Style</span></h3>
+              <div class="lens__body">
+                <p class="lens__desc">Medium and rendering — photograph, illustration, 3D or painting — with colour treatment, grain and focus.</p>
+                <p class="lens__eg meta">Medium and treatment only.</p>
+              </div>
+            </li>
+            <li class="lens" data-lens>
+              <span class="lens__idx idx">04</span>
+              <h3 class="lens__word"><span>Lighting</span></h3>
+              <div class="lens__body">
+                <p class="lens__desc">Direction, quality and colour temperature of the light, and what it does to shadows and surfaces.</p>
+                <p class="lens__eg meta">Light and shadow only.</p>
+              </div>
+            </li>
+            <li class="lens" data-lens>
+              <span class="lens__idx idx">05</span>
+              <h3 class="lens__word"><span>Mood</span></h3>
+              <div class="lens__body">
+                <p class="lens__desc">The atmosphere the image carries — and the specific details that create it.</p>
+                <p class="lens__eg meta">Atmosphere, and why.</p>
+              </div>
+            </li>
           </ol>
         </div>
-        <div class="note">
-          <h3>Good to know</h3>
-          <ul>
-            <li>Sign in with Google the first time you analyze an image. New accounts get free credits.</li>
-            <li>The backend runs on a free server that sleeps when idle, so the first analysis can take up to a minute. After that it's quick.</li>
-            <li>Screenshots you select are sent for analysis and never stored. See the <a href="https://github.com/ishanjaiswal369/image-to-prompt/blob/main/PRIVACY.md">privacy policy</a>.</li>
-          </ul>
-          <a class="btn btn-primary btn-sm" href="https://github.com/ishanjaiswal369/image-to-prompt/releases/latest/download/image-to-prompt.zip">Download v0.1.0</a>
+      </div>
+
+      <div class="grid caps">
+        <p class="meta label caps__label" data-fade><span class="idx">—</span>Capabilities</p>
+        <ul class="caps__list">
+          <li class="cap" data-rule data-fade><span class="idx">A</span><h3>Right-click analysis</h3><p>Any image on any page, straight from Chrome's context menu.</p></li>
+          <li class="cap" data-rule data-fade style="--d:.06"><span class="idx">B</span><h3>Region select</h3><p>Click the toolbar icon and drag across anything visible in the tab — frames, canvases, layouts.</p></li>
+          <li class="cap" data-rule data-fade><span class="idx">C</span><h3>A card that stays</h3><p>Results open in a draggable floating card on the page, and it doesn't close when you click away.</p></li>
+          <li class="cap" data-rule data-fade style="--d:.06"><span class="idx">D</span><h3>Prompt and JSON</h3><p>A paste-ready paragraph for image models, plus structured JSON for your own tools and pipelines.</p></li>
+          <li class="cap" data-rule data-fade><span class="idx">E</span><h3>History</h3><p>Every analysis is saved to your account, ready to revisit and copy again.</p></li>
+          <li class="cap" data-rule data-fade style="--d:.06"><span class="idx">F</span><h3>Fair credits</h3><p>Sign in with Google and start with free credits. If an analysis fails, its credit is refunded automatically.</p></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ===================== 05 GENERATORS ===================== -->
+    <section class="section gens" aria-labelledby="gens-title">
+      <div class="grid section-head section-head--split">
+        <p class="meta label" data-fade><span class="idx">(05)</span>Works with</p>
+        <h2 class="h2" id="gens-title" data-lines>
+          <span class="ln"><span>Paste it</span></span>
+          <span class="ln"><span><em>anywhere.</em></span></span>
+        </h2>
+        <p class="body-lg" data-fade style="--d:.1">Prompts are plain text, specific about subject, framing, style and light — the details image models respond to.</p>
+      </div>
+      <ul class="sr-only">
+        <li>Midjourney</li><li>Stable Diffusion</li><li>DALL·E</li><li>Flux</li><li>Any other text-to-image model</li>
+      </ul>
+      <div class="gens__rows" aria-hidden="true">
+        <div class="gens__row" data-marquee="-1">
+          <span>Midjourney</span><span class="sep">/</span><span>Stable Diffusion</span><span class="sep">/</span><span>DALL·E</span><span class="sep">/</span><span>Flux</span><span class="sep">/</span>
+          <span>Midjourney</span><span class="sep">/</span><span>Stable Diffusion</span><span class="sep">/</span><span>DALL·E</span><span class="sep">/</span><span>Flux</span><span class="sep">/</span>
+        </div>
+        <div class="gens__row gens__row--serif" data-marquee="1">
+          <span>and any text-to-image model</span><span class="sep">/</span><span>and any text-to-image model</span><span class="sep">/</span><span>and any text-to-image model</span><span class="sep">/</span>
         </div>
       </div>
     </section>
 
-    <section id="tech">
-      <div class="section-head">
-        <div class="kicker">Under the hood</div>
-        <h2>A small product, built like a real one.</h2>
-        <p>A Manifest V3 extension talking to a typed Fastify API, with credits that can't be double-spent and AI calls that refund themselves when they fail.</p>
+    <!-- ===================== 06 INSTALL ===================== -->
+    <section class="section install" id="install" aria-labelledby="install-title">
+      <div class="grid install__wrap">
+        <div class="install__aside">
+          <p class="meta label" data-fade><span class="idx">(06)</span>Install</p>
+          <h2 class="h2" id="install-title" data-lines>
+            <span class="ln"><span>Four steps,</span></span>
+            <span class="ln"><span>one <em>minute.</em></span></span>
+          </h2>
+          <p class="body-lg" data-fade style="--d:.1">Image to Prompt is distributed directly rather than through the Web Store, so it installs with Chrome's developer mode.</p>
+          <div data-fade style="--d:.15">
+            <a class="btn" href="https://github.com/ishanjaiswal369/image-to-prompt/releases/latest/download/image-to-prompt.zip">
+              <span class="roll"><span data-text="Download image-to-prompt.zip">Download image-to-prompt.zip</span></span>
+              <span class="btn__icon" aria-hidden="true">
+                <svg class="icon" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><use href="#i-down"/></svg>
+                <svg class="icon" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><use href="#i-down"/></svg>
+              </span>
+            </a>
+          </div>
+          <dl class="specs" data-fade style="--d:.2">
+            <dt>Version</dt><dd>0.1.0</dd>
+            <dt>Browser</dt><dd>Chrome 116 or later</dd>
+            <dt>Package</dt><dd>.zip, under 100 KB</dd>
+            <dt>Account</dt><dd>Google sign-in, free credits</dd>
+          </dl>
+        </div>
+
+        <ol class="steps">
+          <li class="step" data-rule data-fade>
+            <span class="step__num" aria-hidden="true">1</span>
+            <h3>Download the zip</h3>
+            <p>Get <a class="link link--quiet" href="https://github.com/ishanjaiswal369/image-to-prompt/releases/latest/download/image-to-prompt.zip">image-to-prompt.zip</a> from the latest release.</p>
+          </li>
+          <li class="step" data-rule data-fade>
+            <span class="step__num" aria-hidden="true">2</span>
+            <h3>Unzip it to a folder you'll keep</h3>
+            <p>Chrome loads the extension from that folder, so don't delete it afterwards.</p>
+          </li>
+          <li class="step" data-rule data-fade>
+            <span class="step__num" aria-hidden="true">3</span>
+            <h3>Turn on Developer mode</h3>
+            <p>Open <code>chrome://extensions</code> and flip the switch in the top-right corner.</p>
+          </li>
+          <li class="step" data-rule data-fade>
+            <span class="step__num" aria-hidden="true">4</span>
+            <h3>Load unpacked</h3>
+            <p>Click <strong>Load unpacked</strong>, choose the unzipped folder, then pin it from the puzzle-piece menu.</p>
+          </li>
+        </ol>
       </div>
 
-      <div class="arch">
-        <div class="node"><div class="tag">Client</div><h4>Chrome extension</h4><p>MV3 service worker, context menu, region capture, React floating card</p></div>
-        <div class="node hl"><div class="tag">API</div><h4>Fastify on Render</h4><p>Google sign-in → JWT, per-user rate limits, Zod-validated routes</p></div>
-        <div class="node"><div class="tag">Data</div><h4>Postgres on Neon</h4><p>Prisma schema, append-only credit ledger, analysis history</p></div>
-        <div class="node"><div class="tag">AI</div><h4>Vision model</h4><p>OpenRouter or Gemini behind one adapter, structured JSON output</p></div>
+      <div class="grid notes">
+        <p class="meta label notes__label" data-fade><span class="idx">—</span>Good to know</p>
+        <div class="notes__list">
+          <p class="note" data-rule data-fade><strong>Sign in once</strong>Sign in with Google the first time you analyze an image. New accounts get free credits.</p>
+          <p class="note" data-rule data-fade style="--d:.06"><strong>First request wakes the server</strong>The backend runs on a free server that sleeps when idle, so the first analysis can take up to a minute. After that it's quick.</p>
+          <p class="note" data-rule data-fade style="--d:.12"><strong>Private by default</strong>Screenshots you select are sent for analysis and never stored. Read the <a class="link link--quiet" href="https://github.com/ishanjaiswal369/image-to-prompt/blob/main/PRIVACY.md">privacy policy</a>.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== 07 TECHNOLOGY ===================== -->
+    <section class="section tech" id="tech" data-theme="dark" aria-labelledby="tech-title">
+      <div class="grid section-head section-head--split">
+        <p class="meta label" data-fade><span class="idx">(07)</span>Technology</p>
+        <h2 class="h2" id="tech-title" data-lines>
+          <span class="ln"><span>Built like a product,</span></span>
+          <span class="ln"><span>not a <em>prototype.</em></span></span>
+        </h2>
+        <p class="body-lg" data-fade style="--d:.1">A Manifest V3 extension talking to a typed Fastify API — with credits that can't be double-spent and AI calls that refund themselves when they fail.</p>
       </div>
 
-      <div class="decisions">
-        <div class="decision"><h3>Credits as an append-only ledger</h3><p>Every charge, refund and grant is its own row; the balance is their sum. Fully auditable, and a payment webhook becomes a single insert.</p></div>
-        <div class="decision"><h3>No overspending under concurrency</h3><p>A per-user Postgres advisory lock serializes debits, so two simultaneous requests can't push a balance below zero. Covered by a concurrent-debit test.</p></div>
-        <div class="decision"><h3>Idempotent analysis requests</h3><p>Each request carries an idempotency key. A retry replays the saved result instead of charging again; a failed AI call refunds automatically.</p></div>
-        <div class="decision"><h3>Swappable vision provider</h3><p>Models sit behind one interface, chosen by an environment variable, with a backstop that rebuilds the prompt if a model returns it empty.</p></div>
+      <div class="grid stats">
+        <div class="stat" data-rule data-fade><span class="stat__num" data-count-to="5">5</span><p class="meta stat__label">Analysis fields per image</p></div>
+        <div class="stat" data-rule data-fade style="--d:.06"><span class="stat__num" data-count-to="2">2</span><p class="meta stat__label">Ways to capture — right-click or region</p></div>
+        <div class="stat" data-rule data-fade style="--d:.12"><span class="stat__num" data-count-to="20">20</span><p class="meta stat__label">Free credits for every new account</p></div>
+        <div class="stat" data-rule data-fade style="--d:.18"><span class="stat__num">0</span><p class="meta stat__label">Double charges — every request is idempotent</p></div>
       </div>
 
-      <dl class="stack">
-        <dt>Extension</dt><dd><span class="chip">Chrome MV3</span><span class="chip">React 18</span><span class="chip">TypeScript</span><span class="chip">Vite + CRXJS</span><span class="chip">TanStack Query</span></dd>
-        <dt>Backend</dt><dd><span class="chip">Node 20</span><span class="chip">Fastify 5</span><span class="chip">Prisma 5</span><span class="chip">Zod</span><span class="chip">JWT</span><span class="chip">pino</span></dd>
-        <dt>Data &amp; AI</dt><dd><span class="chip">PostgreSQL 16</span><span class="chip">OpenRouter</span><span class="chip">Google Gemini</span></dd>
-        <dt>Infra</dt><dd><span class="chip">Docker</span><span class="chip">Render Blueprint</span><span class="chip">Neon</span><span class="chip">GitHub Pages</span><span class="chip">Vitest</span></dd>
-      </dl>
+      <div class="arch" data-reveal-group>
+        <div class="grid arch__head">
+          <p class="meta label" data-fade><span class="idx">—</span>Architecture</p>
+          <p class="meta meta--muted" data-fade>Fig. 03 — Request path from a right-click to a prompt</p>
+        </div>
+        <div class="arch__map">
+          <svg class="arch__lines" aria-hidden="true" data-arch-lines>
+            <path pathLength="1" d=""/>
+            <path pathLength="1" d=""/>
+            <path pathLength="1" d=""/>
+          </svg>
+          <div class="node node--a" data-fade><div class="node__tag"><span class="idx">A</span><span class="idx">Client</span></div><h3>Chrome extension</h3><p>MV3 service worker, context menu, region capture and a React floating card.</p></div>
+          <div class="node node--b node--hub" data-fade style="--d:.1"><div class="node__tag"><span class="idx">B</span><span class="idx">API</span></div><h3>Fastify on Render</h3><p>Google sign-in to JWT, per-user rate limits and Zod-validated routes.</p></div>
+          <div class="node node--c" data-fade style="--d:.2"><div class="node__tag"><span class="idx">C</span><span class="idx">Data</span></div><h3>Postgres on Neon</h3><p>Prisma schema, append-only credit ledger and analysis history.</p></div>
+          <div class="node node--d" data-fade style="--d:.28"><div class="node__tag"><span class="idx">D</span><span class="idx">Model</span></div><h3>Vision model</h3><p>OpenRouter or Gemini behind one adapter, returning structured JSON.</p></div>
+        </div>
+      </div>
+
+      <div class="grid decisions">
+        <p class="meta label decisions__label" data-fade><span class="idx">—</span>Decisions</p>
+        <div class="decision" data-rule data-fade><span class="idx">01</span><h3>Credits as an append-only ledger</h3><p>Every charge, refund and grant is its own row and the balance is their sum — fully auditable, and a payment webhook becomes a single insert.</p></div>
+        <div class="decision" data-rule data-fade style="--d:.06"><span class="idx">02</span><h3>No overspending under concurrency</h3><p>A per-user Postgres advisory lock serialises debits, so two simultaneous requests can't push a balance below zero. Covered by a concurrent-debit test.</p></div>
+        <div class="decision" data-rule data-fade><span class="idx">03</span><h3>Idempotent analysis requests</h3><p>Each request carries an idempotency key. A retry replays the saved result instead of charging again, and a failed AI call refunds itself.</p></div>
+        <div class="decision" data-rule data-fade style="--d:.06"><span class="idx">04</span><h3>Swappable vision provider</h3><p>Models sit behind one interface chosen by an environment variable, with a backstop that rebuilds the prompt if a model returns it empty.</p></div>
+      </div>
+
+      <div class="grid stack">
+        <p class="meta label stack__label" data-fade><span class="idx">—</span>Stack</p>
+        <dl class="stack__list">
+          <div class="stack__row" data-rule data-fade><dt>Extension</dt><dd>Chrome MV3<span>/</span>React 18<span>/</span>TypeScript<span>/</span>Vite + CRXJS<span>/</span>TanStack Query</dd></div>
+          <div class="stack__row" data-rule data-fade><dt>Backend</dt><dd>Node 20<span>/</span>Fastify 5<span>/</span>Prisma 5<span>/</span>Zod<span>/</span>JWT<span>/</span>pino</dd></div>
+          <div class="stack__row" data-rule data-fade><dt>Data &amp; AI</dt><dd>PostgreSQL 16<span>/</span>OpenRouter<span>/</span>Google Gemini</dd></div>
+          <div class="stack__row" data-rule data-fade><dt>Infrastructure</dt><dd>Docker<span>/</span>Render Blueprint<span>/</span>Neon<span>/</span>GitHub Actions<span>/</span>GitHub Pages<span>/</span>Vitest</dd></div>
+        </dl>
+      </div>
     </section>
   </main>
 
-  <footer>
-    <div class="wrap">
-      <span>Image to Prompt · built by <a href="https://github.com/ishanjaiswal369" style="margin:0">ishanjaiswal369</a></span>
-      <span>
-        <a href="https://github.com/ishanjaiswal369/image-to-prompt">Source</a>
-        <a href="https://github.com/ishanjaiswal369/image-to-prompt/blob/main/docs/ARCHITECTURE.md">Architecture</a>
-        <a href="https://github.com/ishanjaiswal369/image-to-prompt/blob/main/PRIVACY.md">Privacy</a>
-      </span>
+  <!-- ===================== FOOTER ===================== -->
+  <footer class="footer" aria-labelledby="footer-title">
+    <div class="grid footer__top">
+      <h2 class="footer__closing" id="footer-title" data-lines>
+        <span class="ln"><span>Every image has a prompt.</span></span>
+        <span class="ln"><span><em>Go find yours.</em></span></span>
+      </h2>
+      <div class="footer__cta" data-fade>
+        <a class="btn" href="https://github.com/ishanjaiswal369/image-to-prompt/releases/latest/download/image-to-prompt.zip">
+          <span class="roll"><span data-text="Download for Chrome">Download for Chrome</span></span>
+          <span class="btn__icon" aria-hidden="true">
+            <svg class="icon" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><use href="#i-down"/></svg>
+            <svg class="icon" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><use href="#i-down"/></svg>
+          </span>
+        </a>
+        <a class="link" href="#install">How to install</a>
+      </div>
+      <ul class="footer__links" data-fade>
+        <li><a class="link link--quiet" href="https://github.com/ishanjaiswal369/image-to-prompt">Source on GitHub</a></li>
+        <li><a class="link link--quiet" href="https://github.com/ishanjaiswal369/image-to-prompt/blob/main/docs/ARCHITECTURE.md">Architecture notes</a></li>
+        <li><a class="link link--quiet" href="https://github.com/ishanjaiswal369/image-to-prompt/blob/main/PRIVACY.md">Privacy policy</a></li>
+        <li><a class="link link--quiet" href="https://github.com/ishanjaiswal369/image-to-prompt/releases">All releases</a></li>
+      </ul>
+    </div>
+    <div class="grid footer__base">
+      <p class="meta">Image to Prompt — v0.1.0</p>
+      <p class="meta">Built by <a class="link link--quiet" href="https://github.com/ishanjaiswal369">ishanjaiswal369</a></p>
+      <a class="meta link link--quiet" href="#top">Back to top</a>
+    </div>
+    <div class="footer__word-mask" aria-hidden="true">
+      <p class="footer__word" data-footer-word>Image to Prompt</p>
     </div>
   </footer>
 </body>
